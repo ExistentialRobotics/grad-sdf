@@ -1,0 +1,100 @@
+# Generated from CLion C/C++ Code Style settings
+BasedOnStyle: Google
+AccessModifierOffset: -4
+AlignAfterOpenBracket: AlwaysBreak
+AlignConsecutiveAssignments: None
+AlignConsecutiveMacros: Consecutive
+AlignOperands: Align
+AlignTrailingComments: true
+AllowAllArgumentsOnNextLine: false
+AllowAllConstructorInitializersOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortBlocksOnASingleLine: Always
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: Always
+AllowShortLambdasOnASingleLine: All
+AllowShortLoopsOnASingleLine: true
+AlwaysBreakAfterReturnType: All
+AlwaysBreakTemplateDeclarations: Yes
+BinPackArguments: false
+BinPackParameters: false
+BreakBeforeBraces: Attach
+BraceWrapping:
+    AfterCaseLabel: false
+    AfterClass: false
+    AfterControlStatement: Never
+    AfterEnum: false
+    AfterFunction: false
+    AfterNamespace: false
+    AfterUnion: false
+    BeforeCatch: false
+    BeforeElse: false
+    IndentBraces: false
+    SplitEmptyFunction: false
+    SplitEmptyRecord: true
+BreakBeforeBinaryOperators: None
+BreakBeforeTernaryOperators: true
+BreakConstructorInitializers: BeforeColon
+BreakInheritanceList: BeforeColon
+ColumnLimit: 100
+CompactNamespaces: false
+ContinuationIndentWidth: 4
+IncludeBlocks: Regroup
+IncludeCategories:
+    -   Regex: '^<.+(\.h|\.hpp)>'
+        Priority: 3
+        SortPriority: 3
+        CaseSensitive: false
+    -   Regex: '^<[a-z_]*(/[a-z_]*)+(\.h|\.hpp)?>'
+        Priority: 3
+        SortPriority: 3
+        CaseSensitive: false
+    -   Regex: '^<[a-z_]*>'
+        Priority: 4
+        SortPriority: 4
+        CaseSensitive: false
+    -   Regex: '^"[a-z_]*/.*'
+        Priority: 2
+        SortPriority: 2
+        CaseSensitive: false
+    -   Regex: '^".*'
+        Priority: 1
+        SortPriority: 1
+        CaseSensitive: false
+#IncludeIsMainRegex: '([-_](test|unittest))?$'
+#IncludeIsMainSourceRegex: ''
+IndentCaseLabels: true
+IndentPPDirectives: BeforeHash
+IndentWidth: 4
+KeepEmptyLinesAtTheStartOfBlocks: true
+MaxEmptyLinesToKeep: 1
+NamespaceIndentation: All
+ObjCSpaceAfterProperty: false
+ObjCSpaceBeforeProtocolList: true
+PackConstructorInitializers: Never
+PointerAlignment: Right
+ReflowComments: true
+SeparateDefinitionBlocks: Always
+SpaceAfterCStyleCast: true
+SpaceAfterLogicalNot: false
+SpaceAfterTemplateKeyword: false
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCpp11BracedList: false
+SpaceBeforeCtorInitializerColon: true
+SpaceBeforeInheritanceColon: true
+SpaceBeforeParens: ControlStatements
+SpaceBeforeRangeBasedForLoopColon: false
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 2
+SpacesInAngles: false
+SpacesInCStyleCastParentheses: false
+SpacesInLineCommentPrefix:
+    Minimum: 1
+    Maximum: 1
+SpacesInContainerLiterals: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+SortIncludes: CaseInsensitive
+TabWidth: 4
+UseTab: Never

@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools", "wheel", "toml"]
+
+[tool.black]
+line-length = 120
+
+[erl]
+description = "Python bindings for erl_geometry"
+python_pkg_name = "erl_geometry"
+pybind_module_name = "pyerl_geometry"
+erl_dependencies = []
+build_type = "Release"
+use_libtorch = "ON"
+version = "0.1.0"
+author = "Zhirui Dai"
+author_email = "zhdai@ucsd.edu"
+entry_points = { }
+license = "MIT"

@@ -1,0 +1,18 @@
+# Scene: room0,
+# bound_min: [-3.8696494102478027, -2.347562551498413, -1.4041465520858765]
+# bound_max: [3.869352102279663, 2.348031520843506, 1.3950726985931396]
+
+base_config: trainer.yaml
+exp_name: replica_room0
+data:
+    dataset_args:
+        data_path: "/home/daizhirui/DataArchive/Replica-SDF/room0"
+#        data_path: '/home/daizhirui/DataArchive/Replica/room0'
+        max_depth: 10.0
+        offset: [0.0, 0.0, 0.0]
+        bound_min: [-4.0, -2.5, -1.5]
+        bound_max: [4.0, 2.5, 1.5]
+model:
+    residual_net_cfg:
+        bound_min: [-4.5, -3.0, -2.0]
+        bound_max: [4.5, 3.0, 2.0]

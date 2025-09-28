@@ -1,0 +1,63 @@
+identifier: grad_sdf.gui_base.GuiBaseConfig
+
+scene_width: 1920
+scene_height: 1440
+panel_split_ratio: 0.8
+
+view_option: from_file # options: [follow, keyboard, from_file]
+view_file: replica_room0_view1.yaml
+objects: [scan, traj, current_cam, mesh]
+# scan, traj, kf_cams, current_cam, octree, sdf, sdf_prior, sdf_residual, mesh, mesh_prior,
+# gt_mesh, sample_surf, sample_perturb, sample_free, sample_extra
+
+scan_point_size: 1
+scan_point_downsample: 4
+scan_point_color: [0.8, 0.8, 1.0]
+
+traj_line_width: 5
+traj_color: [1.0, 0.0, 0.0]
+
+sample_update_freq: 1
+sample_point_size: 6
+sample_point_downsample: 1
+sample_color_surf: [0.6, 0.0, 0.0]
+sample_color_perturb: [0.0, 0.6, 0.0]
+sample_color_free: [0.0, 0.0, 0.6]
+
+camera_line_width: 8
+camera_size: 0.25
+camera_color_current: [0.0, 1.0, 0.0]
+camera_color_key_frame: [0.0, 0.0, 1.0]
+camera_color_selected_key_frame: [1.0, 0.5, 0.0]
+
+octree_update_freq: 20
+octree_min_size: 1
+octree_line_width: 2
+octree_line_color: [0.6, 0.6, 0.6]
+
+mesh_update_freq: 5
+mesh_resolution: 40
+mesh_height_color_map: jet
+mesh_color_option: normal
+
+sdf_slice_update_freq: 10
+sdf_slice_resolution: 50
+sdf_point_size: 22
+sdf_slice_axis: 2
+sdf_slice_position: -1.0
+sdf_color_map: jet
+
+experiment_name: grad_sdf
+scene_bound_min: [-10.0, -10.0, -10.0]
+scene_bound_max: [10.0, 10.0, 10.0]
+gt_mesh_path:
+gt_mesh_offset:
+
+mesh_remove_ceiling: true
+mesh_ceiling_thickness: 0.6
+
+save_video_path: video_mesh50.mp4
+video_fps: 60
+video_codec: mp4v
+video_auto_record: false
+video_auto_end: false
