@@ -418,7 +418,7 @@ class ConfigABC:
                                 setattr(_config_obj, key, value)
                         else:  # nested attribute
                             prefix = key[:ind]
-                            suffix = key[ind + 1 :]
+                            suffix = key[ind + 1:]
                             assert hasattr(_config_obj, prefix), f"Unknown attribute {prefix}"
                             args_update_config({suffix: value}, getattr(_config_obj, prefix))
 
@@ -436,7 +436,7 @@ class ConfigABC:
                             result[key] = value
                         else:
                             prefix = key[:ind]
-                            suffix = key[ind + 1 :]
+                            suffix = key[ind + 1:]
                             if prefix not in result:
                                 result[prefix] = dict()
                             assert suffix not in result[prefix]

@@ -3,8 +3,8 @@ $\nabla$-SDF: Learning Euclidean Signed Distance Functions Online with Gradient-
 
 <p align="center">
 <a href="https://github.com/ExistentialRobotics/grad-sdf/releases"><img src="https://img.shields.io/github/v/release/ExistentialRobotics/grad-sdf?label=version" /></a>
-<a href="https://github.com/ExistentialRobotics/grad-sdf#run-grad-sdf"><img src="https://img.shields.io/badge/python-3670A0?style=flat-square&logo=python&logoColor=ffdd54" /></a>
-<a href="https://github.com/ExistentialRobotics/grad-sdf#installation"><img src="https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black" /></a>
+<a href="https://github.com/ExistentialRobotics/grad-sdf?tab=readme-ov-file#run-nabla-sdf"><img src="https://img.shields.io/badge/python-3670A0?style=flat-square&logo=python&logoColor=ffdd54" /></a>
+<a href="https://github.com/ExistentialRobotics/grad-sdf?tab=readme-ov-file#installation"><img src="https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black" /></a>
 <!-- <a href="https://www.ipb.uni-bonn.de/wp-content/papercite-data/pdf/pan2024tro.pdf"><img src="https://img.shields.io/badge/Paper-pdf-<COLOR>.svg?style=flat-square" /></a> -->
 <a href="https://github.com/ExistentialRobotics/grad-sdf/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" /></a>
 </p>
@@ -40,7 +40,37 @@ TODO: figures, GIFs, videos, etc.
     pipenv shell --verbose
     ```
 
-2. Install other dependencies
+2. Install system dependencies
+    - For Ubuntu
+    ```bash
+    sudo apt install \
+        cmake \
+        g++ \
+        ccache \
+        git \
+        libeigen3-dev \
+        libyaml-cpp-dev \
+        libabsl-dev \
+        python3-dev \
+        python3-pip \
+        pybind11-dev
+    ```
+    - For Arch Linux
+    ```bash
+    sudo pacman -S --needed \
+        cmake \
+        gcc \
+        ccache \
+        git \
+        eigen \
+        yaml-cpp \
+        abseil-cpp \
+        python \
+        python-pip \
+        pybind11
+    ```
+
+3. Install other dependencies
 
     ```bash
     cd deps/tinycudann

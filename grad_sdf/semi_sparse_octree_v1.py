@@ -50,7 +50,7 @@ class SemiSparseOctree(SemiSparseOctreeBase):
         self.voxel_centers = (self.voxels[:, :3] + self.voxels[:, [-1]] * 0.5) * self.cfg.resolution
         self.vertex_indices = vertices_svo.to(self.sdf_priors.device)
         self.structure = children_svo.int().to(self.sdf_priors.device)
-        return svo_idx[..., 0]  # (N,) tensor of indices of inserted voxels
+        return svo_idx[..., 0].long()  # (N,) tensor of indices of inserted voxels
 
     @torch.no_grad()
     def find_voxel_indices(self, points: torch.Tensor, are_voxels: bool) -> torch.Tensor:

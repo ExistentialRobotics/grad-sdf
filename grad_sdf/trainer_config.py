@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from dataclasses import field
 from typing import Optional
 
 from grad_sdf.criterion import CriterionConfig
@@ -15,17 +16,17 @@ class TrainerConfig(ConfigABC):
     log_dir: str = "logs"
     exp_name: str = "grad_sdf"
     device: str = "cuda"
-    data: DataConfig = DataConfig()
-    key_frame_set: KeyFrameSetConfig = KeyFrameSetConfig()
-    model: SdfNetworkConfig = SdfNetworkConfig()
-    criterion: CriterionConfig = CriterionConfig()
+    data: DataConfig = field(default_factory=DataConfig)
+    key_frame_set: KeyFrameSetConfig = field(default_factory=KeyFrameSetConfig)
+    model: SdfNetworkConfig = field(default_factory=SdfNetworkConfig)
+    criterion: CriterionConfig = field(default_factory=CriterionConfig)
     num_init_frames: int = 3
     init_frame_iterations: int = 10
     num_iterations_per_frame: int = 1
     num_rays_total: int = 20480
     extra_surface_sample: bool = True
     frame_downsample: int = 100
-    sample_rays: SampleRaysConfig = SampleRaysConfig()
+    sample_rays: SampleRaysConfig = field(default_factory=SampleRaysConfig)
     batch_size: int = 204800
     lr: float = 0.01
     grad_method: str = "finite_difference"  # autodiff | finite_difference

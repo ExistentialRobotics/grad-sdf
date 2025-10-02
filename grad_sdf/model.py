@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from dataclasses import field
 from typing import Optional
 
 import torch
@@ -12,8 +13,8 @@ from grad_sdf.utils.config_abc import ConfigABC
 
 @dataclass
 class SdfNetworkConfig(ConfigABC):
-    octree_cfg: OctreeConfig = OctreeConfig()
-    residual_net_cfg: ResidualNetConfig = ResidualNetConfig()
+    octree_cfg: OctreeConfig = field(default_factory=OctreeConfig)
+    residual_net_cfg: ResidualNetConfig = field(default_factory=ResidualNetConfig)
 
 
 class SdfNetwork(nn.Module):

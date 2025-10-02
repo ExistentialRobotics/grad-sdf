@@ -82,7 +82,6 @@ for mesh_path in mesh_path_list:
         R = R2 @ obb.R.T
     else:
         R = obb.R.T
-    # R = obb.R.T
 
     # transform the mesh to canonical pose
     mesh_rotated = o3d.geometry.TriangleMesh(mesh)
@@ -111,10 +110,10 @@ for mesh_path in mesh_path_list:
         print(f"save failed: {output_mesh}")
 
     # process the corresponding traj.txt file if exists
+    camera_poses = []
     if os.path.exists(traj_path):
         print(f"processing traj.txt file: {traj_path}")
 
-        camera_poses = []
         with open(traj_path, "r") as f:
             lines = f.readlines()
 
@@ -142,7 +141,7 @@ for mesh_path in mesh_path_list:
         transformed_poses = np.stack(transformed_poses, axis=0)
 
         np.savetxt(output_traj, transformed_poses, delimiter=" ")
-        print(f"Transformed camera extrinsics have been saved to: {output_traj}")
+        print(f"Transformed camera extrinsic have been saved to: {output_traj}")
     else:
         print(f"Camera extrinsic file not found: {traj_path}")
 
@@ -150,9 +149,9 @@ for mesh_path in mesh_path_list:
 
     # visualize the original mesh and OBB
     obb.color = [1, 0, 0]  # red
-    world_axis = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1.0, origin=[0, 0, 0])
+    world_axis = o3d.geometry.TriangleMesh().create_coordinate_frame(size=1.0, origin=[0, 0, 0])
 
-    obb_axis = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5, origin=[0, 0, 0])
+    obb_axis = o3d.geometry.TriangleMesh().create_coordinate_frame(size=0.5, origin=[0, 0, 0])
     obb_axis.rotate(R.T, center=(0, 0, 0))
     obb_axis.translate(translation=obb.center)
 

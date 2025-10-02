@@ -1,10 +1,11 @@
+import argparse
 import os
 
 import numpy as np
 from tqdm import tqdm
 
-from grad_sdf import MeshSdf, o3d
-import argparse
+from grad_sdf import o3d
+from grad_sdf.utils.mesh_sdf import MeshSdf
 
 
 def compute_sdf_ground_truth(
