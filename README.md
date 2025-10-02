@@ -39,6 +39,10 @@ TODO: figures, GIFs, videos, etc.
     pipenv install
     pipenv shell --verbose
     ```
+    If you use other virtual environment tools, you can also install the dependencies by
+    ```bash
+    pip install -r requirements.txt
+    ```
 
 2. Install system dependencies
     - For Ubuntu
@@ -73,6 +77,8 @@ TODO: figures, GIFs, videos, etc.
 3. Install other dependencies
 
     ```bash
+    pip install git+https://github.com/facebookresearch/pytorch3d.git@stable
+
     cd deps/tinycudann
     cmake . -B build -DCMAKE_BUILD_TYPE=Release
     cmake --build build --config Release -j`nproc`

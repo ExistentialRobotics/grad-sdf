@@ -6,7 +6,6 @@ matplotlib
 numpy
 open3d
 pandas
-git+https://github.com/facebookresearch/pytorch3d.git@stable#egg=pytorch3d
 ruamel.yaml
 scikit-image
 scipy

@@ -2313,7 +2313,8 @@ class GuiBase:
         extrinsics = np.array(view["extrinsics"])
         bounds = deepcopy(self.widget3d.scene.bounding_box)
         bounds = bounds.scale(1.2, bounds.get_center())
-        self.widget3d.setup_camera(intrinsics, extrinsics, self.widget3d_width, self.widget3d_height, bounds)  # type: ignore
+        self.widget3d.setup_camera(intrinsics, extrinsics, self.widget3d_width, self.widget3d_height,
+                                   bounds)  # type: ignore
 
     @classmethod
     def run(cls, *args, **kwargs):
@@ -2330,7 +2331,7 @@ class GuiBase:
         try:
             packet = GuiControlPacket()
             packet.flag_mapping_run = self.switch_run.is_on
-            if (
+            if self.switch_vis.is_on and (
                 self.checkbox_show_sample_surf.checked
                 or self.checkbox_show_sample_perturbed.checked
                 or self.checkbox_show_sample_free.checked
@@ -2338,10 +2339,10 @@ class GuiBase:
             ):
                 packet.sample_update_frequency = self.slider_sample_update_freq.int_value
 
-            if self.checkbox_show_octree.checked:
+            if self.switch_vis.is_on and self.checkbox_show_octree.checked:
                 packet.octree_update_frequency = self.slider_octree_update_freq.int_value
                 packet.octree_min_size = self.slider_octree_min_size.int_value
-            if (
+            if self.switch_vis.is_on and (
                 self.checkbox_show_sdf.checked
                 or self.checkbox_show_sdf_prior.checked
                 or self.checkbox_show_sdf_res.checked
@@ -2350,7 +2351,7 @@ class GuiBase:
                 packet.sdf_slice_axis = self.combobox_sdf_axis.selected_index
                 packet.sdf_slice_position = self.slider_sdf_position.double_value
                 packet.sdf_slice_resolution = 1.0 / self.slider_sdf_resolution.int_value
-            if self.checkbox_show_mesh.checked or self.checkbox_show_mesh_by_prior.checked:
+            if self.switch_vis.is_on and (self.checkbox_show_mesh.checked or self.checkbox_show_mesh_by_prior.checked):
                 packet.sdf_grid_frequency = self.slider_mesh_update_freq.int_value
                 packet.sdf_grid_resolution = 1.0 / self.slider_mesh_resolution.int_value
                 packet.sdf_grid_ignore_large_voxels = self.cfg.mesh_clean
@@ -2509,7 +2510,7 @@ class GuiBase:
                         self.sample_perturbed_name,
                         self.sample_perturbed,
                         self.checkbox_show_sample_perturbed.checked,
-                        self.data_packet.sampled_xyz[:, n_free : n_free + n_perturbed],
+                        self.data_packet.sampled_xyz[:, n_free: n_free + n_perturbed],
                         self.cfg.sample_color_perturbed,
                     )
                 if n_free > 0:
@@ -2719,7 +2720,7 @@ class GuiBase:
         self.window.post_redraw()
 
     def communicate(self):
-        debug_counter = 0  # Counter to reduce debug output frequency
+        # debug_counter = 0  # Counter to reduce debug output frequency
         while True:
             time.sleep(self.sleep_interval)
 
@@ -2729,11 +2730,11 @@ class GuiBase:
                 self._send_flag_gui_closed()
                 break  # exit thread
 
-            # Only print debug message every 100 iterations (once per second at 10ms intervals)
-            debug_counter += 1
-            if debug_counter % 100 == 0:
-                tqdm.write("[GUI] Communicate thread awake.")
-                debug_counter = 0
+            # # Only print debug message every 100 iterations (once per second at 10ms intervals)
+            # debug_counter += 1
+            # if debug_counter % 100 == 0:
+            #     tqdm.write("[GUI] Communicate thread awake.")
+            #     debug_counter = 0
 
             current_time = time.time()
             if current_time - self.last_control_packet_timestamp > 0.01:  # 100 Hz

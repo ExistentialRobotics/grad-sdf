@@ -111,7 +111,7 @@ class GradSdfEvaluator(EvaluatorBase):
         sdf_prior_grad = []
         sdf_grad = []
 
-        for i in tqdm(range(0, points.shape[0], bs), desc="Batches", ncols=120):
+        for i in tqdm(range(0, points.shape[0], bs), desc="Batches", ncols=120, position=1, leave=False):
             j = min(i + bs, points.shape[0])
             points_batch = points[i:j].to(self.device)
             points_batch.requires_grad_(auto_grad)

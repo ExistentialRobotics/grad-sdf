@@ -12,7 +12,7 @@ matplotlib = "*"
 numpy = "*"
 open3d = "*"
 pandas = "*"
-pytorch3d = {git = "https://github.com/facebookresearch/pytorch3d.git", ref="stable"}
+#pytorch3d = {git = "https://github.com/facebookresearch/pytorch3d.git", ref="stable"}
 "ruamel.yaml" = "*"
 scikit-image = "*"
 scipy = "*"
