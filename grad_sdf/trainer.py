@@ -26,6 +26,11 @@ class Trainer:
         self.setup_seed(self.cfg.seed)
 
         self.data_stream = get_dataset(cfg.data.dataset_name, cfg.data.dataset_args)
+
+        # set the bound automatically
+        self.cfg.model.residual_net_cfg.bound_min = (self.data_stream.bound_min - 0.15).cpu().tolist()
+        self.cfg.model.residual_net_cfg.bound_max = (self.data_stream.bound_max + 0.15).cpu().tolist()
+
         if self.cfg.data.end_frame < 0:
             self.cfg.data.end_frame = len(self.data_stream)
         self.cfg.data.start_frame = min(self.cfg.data.start_frame, len(self.data_stream) - 1)

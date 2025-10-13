@@ -3,6 +3,7 @@ from glob import glob
 
 import cv2
 import numpy as np
+import open3d as o3d
 import torch
 from torch.utils.data import Dataset
 from tqdm import tqdm
@@ -26,6 +27,14 @@ class DataLoader(Dataset):
         self.offset = offset
         self.bound_min = bound_min
         self.bound_max = bound_max
+
+        if self.bound_min is None or self.bound_max is None:
+            scene_name = osp.basename(osp.abspath(data_path))
+            mesh_path = osp.join(osp.dirname(data_path), f"{scene_name}_mesh.ply")
+            assert osp.exists(mesh_path)
+            mesh: o3d.geometry.TriangleMesh = o3d.io.read_triangle_mesh(mesh_path)
+            self.bound_min = np.min(mesh.vertices[:], axis=0).flatten().tolist()
+            self.bound_max = np.max(mesh.vertices[:], axis=0).flatten().tolist()
 
         if self.offset is None:
             self.offset: torch.Tensor = torch.zeros(3)

@@ -16,20 +16,26 @@ from grad_sdf.trainer import Trainer, TrainerConfig
 
 
 class GuiTrainer:
-    def __init__(self, gui_cfg: GuiBaseConfig, trainer_cfg: TrainerConfig):
+    def __init__(self, gui_cfg: GuiBaseConfig, trainer_cfg: TrainerConfig, copy_scene_bound_to_gui: bool):
         self.gui_cfg = gui_cfg
         self.trainer_cfg = trainer_cfg
-        self.gui_cfg.scene_bound_min = self.trainer_cfg.model.residual_net_cfg.bound_min
-        self.gui_cfg.scene_bound_max = self.trainer_cfg.model.residual_net_cfg.bound_max
-
-        self.queue_from_gui = mp.Queue()
-        self.queue_to_gui = mp.Queue()
-        self.gui_process = mp.Process(target=GuiBase.run, args=(self.gui_cfg, self.queue_to_gui, self.queue_from_gui))
 
         self.trainer = Trainer(self.trainer_cfg)
         self.trainer.training_iteration_end_callback = self.training_iteration_end_callback
         self.trainer.training_frame_start_callback = self.training_frame_start_callback
         self.trainer.training_end_callback = self.training_end_callback
+
+        if copy_scene_bound_to_gui:
+            self.gui_cfg.scene_bound_min = self.trainer_cfg.model.residual_net_cfg.bound_min
+            self.gui_cfg.scene_bound_max = self.trainer_cfg.model.residual_net_cfg.bound_max
+            tqdm.write(
+                f"[Training] Copied scene bounds from trainer config to GUI config: {self.gui_cfg.scene_bound_min},"
+                f" {self.gui_cfg.scene_bound_max}"
+            )
+
+        self.queue_from_gui = mp.Queue()
+        self.queue_to_gui = mp.Queue()
+        self.gui_process = mp.Process(target=GuiBase.run, args=(self.gui_cfg, self.queue_to_gui, self.queue_from_gui))
 
         self.control_packet: GuiControlPacket = GuiControlPacket()
         self.last_sample_time = 0.0
@@ -387,6 +393,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--gui-config", type=str, help="path to GUI config file")
     parser.add_argument("--trainer-config", type=str, required=True, help="path to trainer config file")
+    parser.add_argument("--exp-name", type=str, help="experiment name")
+    parser.add_argument("--data-path", type=str, help="path to dataset")
     parser.add_argument("--gt-mesh-path", type=str, help="path to ground truth mesh file")
     parser.add_argument("--apply-offset-to-gt-mesh", action="store_true", help="apply scene offset to GT mesh")
     parser.add_argument(
@@ -415,17 +423,14 @@ def main():
         if offset is not None:
             gui_cfg.gt_mesh_offset = offset
             tqdm.write(f"[Training] Applied offset {offset} to GT mesh in GUI.")
-    if args.copy_scene_bound_to_gui:
-        trainer_bound_min = trainer_cfg.model.residual_net_cfg.bound_min
-        trainer_bound_max = trainer_cfg.model.residual_net_cfg.bound_max
-        gui_cfg.scene_bound_min = trainer_bound_min
-        gui_cfg.scene_bound_max = trainer_bound_max
-        tqdm.write(
-            f"[Training] Copied scene bounds from trainer config to GUI config: {trainer_bound_min},"
-            f" {trainer_bound_max}"
-        )
 
-    gui_trainer = GuiTrainer(gui_cfg, trainer_cfg)
+    if args.exp_name is not None:
+        trainer_cfg.exp_name = args.exp_name
+    if args.data_path is not None:
+        assert os.path.exists(args.data_path), f"Data path {args.data_path} does not exist"
+        trainer_cfg.data.dataset_args["data_path"] = args.data_path
+
+    gui_trainer = GuiTrainer(gui_cfg, trainer_cfg, args.copy_scene_bound_to_gui)
     gui_trainer.run()
 
 

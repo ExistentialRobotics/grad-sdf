@@ -1,0 +1,5 @@
+base_config: trainer.yaml
+data:
+    dataset_args:
+        max_depth: 10.0
+        offset: [0.0, 0.0, 0.0]

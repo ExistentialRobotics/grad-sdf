@@ -229,6 +229,7 @@ def process_all_replica_scenes(
             output_dir=os.path.join(output_dir, scene),
             insert_interval=interval,
             n_rolls_per_insertion=n_rolls_per_insertion,
+            ignore_existing=ignore_existing,
         )
 
 
