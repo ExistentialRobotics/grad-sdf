@@ -9,9 +9,9 @@ $\nabla$-SDF: Learning Euclidean Signed Distance Functions Online with Gradient-
 <a href="https://github.com/ExistentialRobotics/grad-sdf/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" /></a>
 </p>
 
-This repository contains the code for the paper: [place_holder].
+This repository contains the code for the paper: $\nabla$-SDF.
 
-TODO: one line description of the paper.
+$\nabla$-SDF is a hybrid SDF reconstruction framework that combines gradient-augmented octree interpolation with an implicit neural residual to achieve efficient, continuous non-truncated, and highly accurate Euclidean SDF mapping..
 
 TODO: figures, GIFs, videos, etc.
 
@@ -99,8 +99,32 @@ TODO: figures, GIFs, videos, etc.
 
 ## Prepare Dataset
 
+Download NICE-SLAM Replica Dataset
+```bash
+bash scripts/download_replica.sh
+```
+Run the following commands to preprocess the Replica dataset:
+
+```bash
+python grad_sdf/dataset/replica_obb_rotation.py \
+    --dataset-dir data/Replica \
+    --output-dir data/Replica_preprocessed
+
+python grad_sdf/dataset/replica_augment_views.py \
+    --original-dir data/Replica_preprocessed \
+    --output-dir data/Replica_preprocessed \
+    # --scenes room0   # (optional) process a specific scene
+```
 ## Run $\nabla$-SDF
 
+Example training on scene room0
+```bash
+python grad_sdf/trainer.py --config configs/v2/replica_room0.yaml
+```
+Example training on scene room0 with GUI
+```bash
+python grad_sdf/gui_trainer.py --gui-config configs/v2/gui.yaml --trainer-config configs/v2/replica_room0.yaml --gt-mesh-path data/Replica_preprocessed/room0_mesh.ply --apply-offset-to-gt-mesh --copy-scene-bound-to-gui
+```
 ## Docker
 
 ## Citation

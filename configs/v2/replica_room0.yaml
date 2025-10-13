@@ -6,4 +6,4 @@ base_config: replica.yaml
 exp_name: replica_room0
 data:
     dataset_args:
-        data_path: "/home/daizhirui/DataArchive/Replica-SDF/room0"
+        data_path: "data/Replica_preprocessed/room0"

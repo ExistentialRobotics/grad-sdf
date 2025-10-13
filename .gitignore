@@ -1,4 +1,6 @@
 Pipfile.lock
+launch.json
+data/
 logs/
 docs/
 
