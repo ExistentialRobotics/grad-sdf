@@ -110,17 +110,6 @@ print(f"cmake executable: {cmake_path}")
 print(f"Python executable: {sys.executable}")
 print(f"Python version: {sys.version}")
 print(f"CMAKE_BUILD_TYPE: {cmake_build_type}")
-print(f"ERL_IGNORE_CONDA_LIBRARIES: {cmake_ignore_conda_libraries}")
-print(f"ERL_USE_LAPACK: {cmake_use_lapack}")
-print(f"ERL_USE_LAPACK_STRICT: {cmake_use_lapack_strict}")
-print(f"ERL_USE_INTEL_MKL: {cmake_use_intel_mkl}")
-print(f"ERL_USE_AOCL: {cmake_use_aocl}")
-print(f"ERL_USE_SINGLE_THREADED_BLAS: {cmake_use_single_threaded_blas}")
-print(f"ERL_USE_TRACY: {cmake_use_tracy}")
-print(f"ERL_USE_PANGOLIN: {cmake_use_pangolin}")
-print(f"ERL_USE_PLPLOT: {cmake_use_plplot}")
-print(f"ERL_USE_LIBTORCH: {cmake_use_libtorch}")
-print(f"ERL_BUILD_TEST: {cmake_build_test}")
 print(f"FORCE_CMAKE_RECONFIGURE: {force_cmake_reconfigure}")
 print("====================================================================================================")
 
@@ -177,17 +166,6 @@ class CMakeBuild(build_ext):
                 f"-DCMAKE_BUILD_TYPE={cmake_build_type}",
                 f"-DCMAKE_INSTALL_PREFIX:PATH={ext_dir}",  # used to install the package
                 f"-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON",
-                f"-DERL_IGNORE_CONDA_LIBRARIES:BOOL={cmake_ignore_conda_libraries}",
-                f"-DERL_USE_LAPACK:BOOL={cmake_use_lapack}",
-                f"-DERL_USE_LAPACK_STRICT:BOOL={cmake_use_lapack_strict}",
-                f"-DERL_USE_INTEL_MKL:BOOL={cmake_use_intel_mkl}",
-                f"-DERL_USE_AOCL:BOOL={cmake_use_aocl}",
-                f"-DERL_USE_SINGLE_THREADED_BLAS:BOOL={cmake_use_single_threaded_blas}",
-                f"-DERL_USE_TRACY:BOOL={cmake_use_tracy}",
-                f"-DERL_USE_PANGOLIN:BOOL={cmake_use_pangolin}",
-                f"-DERL_USE_PLPLOT:BOOL={cmake_use_plplot}",
-                f"-DERL_USE_LIBTORCH:BOOL={cmake_use_libtorch}",
-                f"-DERL_BUILD_TEST:BOOL={cmake_build_test}",
                 f"-DPIP_LIB_DIR:PATH={ext_dir}",
             ]
             if torch_dir is not None:

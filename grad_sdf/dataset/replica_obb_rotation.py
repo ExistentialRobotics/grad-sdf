@@ -46,7 +46,8 @@ for mesh_path in mesh_path_list:
         continue
 
     print(mesh_path)
-    mesh = o3d.io.read_triangle_mesh(mesh_path)
+    mesh: o3d.geometry.TriangleMesh = o3d.io.read_triangle_mesh(mesh_path)
+    mesh.remove_degenerate_triangles()
     mesh.compute_vertex_normals()
 
     obb = mesh.get_minimal_oriented_bounding_box()

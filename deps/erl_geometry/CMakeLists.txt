@@ -78,8 +78,8 @@ set_target_properties(${lib_name} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 target_link_libraries(${lib_name}
     PRIVATE Eigen3::Eigen absl::flat_hash_map absl::flat_hash_set yaml-cpp
     PRIVATE ${TORCH_LIBRARIES_DIR}/libtorch_python.so)
-target_compile_definitions(${lib_name} PRIVATE -DERL_USE_LIBTORCH)
-target_compile_definitions(${lib_name} PRIVATE PYBIND_MODULE_NAME=${lib_name})
+# pytorch comes with fmt
+target_compile_definitions(${lib_name} PRIVATE ERL_USE_LIBTORCH ERL_USE_FMT PYBIND_MODULE_NAME=${lib_name})
 
 if (APPLE)
     set(CMAKE_MACOSX_RPATH ON)
