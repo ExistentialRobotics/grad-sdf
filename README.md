@@ -21,7 +21,7 @@ TODO: figures, GIFs, videos, etc.
 
 - Ubuntu (24.04 tested) / Arch Linux
 - Python 3.12 (3.10, 3.11 should also work)
-- CUDA 12 (tested with 12.9)
+- CUDA 12 (tested with 12.8)
 
 ### Steps
 
@@ -105,28 +105,79 @@ bash scripts/download_replica.sh
 ```
 Run the following commands to preprocess the Replica dataset:
 
+The script [`grad_sdf/dataset/replica_obb_rotation.py`](grad_sdf/dataset/replica_obb_rotation.py) is used to rotate mesh and trajectory to better match octree.
 ```bash
 python grad_sdf/dataset/replica_obb_rotation.py \
     --dataset-dir data/Replica \
     --output-dir data/Replica_preprocessed
-
+```
+The script [`grad_sdf/dataset/replica_augment_views.py`](grad_sdf/dataset/replica_augment_views.py) is used to augment the Replica dataset with additional virtual camera views (e.g., upward-looking frames) to improve spatial coverage for training.
+```bash
 python grad_sdf/dataset/replica_augment_views.py \
     --original-dir data/Replica_preprocessed \
     --output-dir data/Replica_preprocessed \
-    # --scenes room0   # (optional) process a specific scene
+    # --scenes room0  # (optional) Process specific scenes only. If not set, process all scenes. \
+    # --interval 50  # (optional, default=50) Insert an upward-looking frame every n frames. \
+    # --n-rolls-per-insertion 1 # (optional, default=1) Number of random roll rotations per upward insertion. \
+    # --ignore-existing  # (optional default=True) Skip already processed scenes.
 ```
 ## Run $\nabla$-SDF
 
-Example training on scene room0
-```bash
-python grad_sdf/trainer.py --config configs/v2/replica_room0.yaml
-```
-Example training on scene room0 with GUI
-```bash
-python grad_sdf/gui_trainer.py --gui-config configs/v2/gui.yaml --trainer-config configs/v2/replica_room0.yaml --gt-mesh-path data/Replica_preprocessed/room0_mesh.ply --apply-offset-to-gt-mesh --copy-scene-bound-to-gui
-```
-## Docker
+### Example: Training on Replica Scene *room0*
 
+Run the following command to start training on the Replica dataset scene **room0**:
+
+```bash
+python grad_sdf/trainer.py  --config configs/v2/replica_room0.yaml
+```
+### Run GUI Trainer
+
+The GUI trainer allows interactive visualization and monitoring of the training process, including SDF field evolution, octree structure, and camera poses.
+
+```bash
+python grad_sdf/gui_trainer.py \
+    --gui-config configs/v2/gui.yaml \
+    --trainer-config configs/v2/replica_room0.yaml \
+    --gt-mesh-path data/Replica_preprocessed/room0_mesh.ply \
+    --apply-offset-to-gt-mesh \
+    --copy-scene-bound-to-gui
+```
+
+## Docker
+### 1. Build the image
+First, build the Docker image (make sure you are in the project root):
+
+
+Use the following command to start a container with GPU, X11 display, and device access enabled:
+```bash
+./docker/build.bash
+```
+This script will create the Docker image erl/grad_sdf:24.04.
+### 2. Run the container
+Use the following command to start a container with GPU, X11 display, and device access enabled:
+```bash
+docker run -e TZ=America/Los_Angeles --privileged --restart always -t \
+    -v /dev/char:/dev/char:rw \
+    -v /dev/shm:/dev/shm:rw \
+    -v /dev/serial:/dev/serial:rw \
+    -v /dev/bus:/dev/bus:rw \
+    -v $HOME:$HOME:rw \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    -v /var/run/docker.sock:/var/run/docker.sock:rw \
+    -v /dev/block:/dev/block:rw \
+    --workdir /workspace \
+    --gpus all \
+    --runtime=nvidia \
+    -e DISPLAY \
+    -v $HOME/.Xauthority:/root/.Xauthority:rw \
+    --net=host \
+    --detach \
+    --hostname container-grad_sdf \
+    --add-host=container-grad_sdf:127.0.0.1 \
+    --name grad_sdf \
+    erl/grad_sdf:24.04 \
+    bash -l
+```
 ## Citation
 
 ## Acknowledgement
