@@ -9,7 +9,7 @@ $\nabla$-SDF: Learning Euclidean Signed Distance Functions Online with Gradient-
 <a href="https://github.com/ExistentialRobotics/grad-sdf/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" /></a>
 </p>
 
-This repository contains the code for the paper: $\nabla$-SDF.
+This repository contains the code for the paper: **$\nabla$-SDF: Learning Euclidean Signed Distance Functions Online with Gradient-Augmented Octree Interpolation and Neural Residual**.
 
 $\nabla$-SDF is a hybrid SDF reconstruction framework that combines gradient-augmented octree interpolation with an implicit neural residual to achieve efficient, continuous non-truncated, and highly accurate Euclidean SDF mapping..
 
@@ -117,9 +117,9 @@ python grad_sdf/dataset/replica_augment_views.py \
     --original-dir data/Replica_preprocessed \
     --output-dir data/Replica_preprocessed \
     # --scenes room0  # (optional) Process specific scenes only. If not set, process all scenes. \
-    # --interval 50  # (optional, default=50) Insert an upward-looking frame every n frames. \
-    # --n-rolls-per-insertion 1 # (optional, default=1) Number of random roll rotations per upward insertion. \
-    # --ignore-existing  # (optional default=True) Skip already processed scenes.
+    # --interval 50  # (optional, default=50) Insert upward-looking frames every n frames. \
+    # --n-rolls-per-insertion 10 # (optional, default=10) Number of roll rotations per insertion. \
+    # --keep-existing  # (optional) Keep existing RGBD data.
 ```
 ## Run $\nabla$-SDF
 
@@ -130,6 +130,7 @@ Run the following command to start training on the Replica dataset scene **room0
 ```bash
 python grad_sdf/trainer.py  --config configs/v2/replica_room0.yaml
 ```
+
 ### Run GUI Trainer
 
 The GUI trainer allows interactive visualization and monitoring of the training process, including SDF field evolution, octree structure, and camera poses.
@@ -144,6 +145,7 @@ python grad_sdf/gui_trainer.py \
 ```
 
 ## Docker
+
 ### 1. Build the image
 First, build the Docker image (make sure you are in the project root):
 
@@ -152,24 +154,19 @@ Use the following command to start a container with GPU, X11 display, and device
 ```bash
 ./docker/build.bash
 ```
-This script will create the Docker image erl/grad_sdf:24.04.
+This script will create the Docker image `erl/grad_sdf:24.04`.
+
 ### 2. Run the container
 Use the following command to start a container with GPU, X11 display, and device access enabled:
 ```bash
-docker run -e TZ=America/Los_Angeles --privileged --restart always -t \
-    -v /dev/char:/dev/char:rw \
-    -v /dev/shm:/dev/shm:rw \
-    -v /dev/serial:/dev/serial:rw \
-    -v /dev/bus:/dev/bus:rw \
-    -v $HOME:$HOME:rw \
+docker run --privileged --restart always -t \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
-    -v /var/run/docker.sock:/var/run/docker.sock:rw \
-    -v /dev/block:/dev/block:rw \
+    -v $HOME:$HOME:rw \
+    -v $HOME/.Xauthority:/root/.Xauthority:rw \
     --workdir /workspace \
     --gpus all \
     --runtime=nvidia \
     -e DISPLAY \
-    -v $HOME/.Xauthority:/root/.Xauthority:rw \
     --net=host \
     --detach \
     --hostname container-grad_sdf \
@@ -178,9 +175,10 @@ docker run -e TZ=America/Los_Angeles --privileged --restart always -t \
     erl/grad_sdf:24.04 \
     bash -l
 ```
+
 ## Citation
 
 ## Acknowledgement
 
-- We develop our key frame selection strategy based on [H2-Mapping]()
-- We create the GUI based on [Open3D](http://www.open3d.org/) with inspirations from [PIN-SLAM]()
+- We develop our key frame selection strategy based on [H2-Mapping](https://github.com/Robotics-STAR-Lab/H2-Mapping).
+- We create the GUI based on [Open3D](http://www.open3d.org/) with inspirations from [PIN-SLAM](https://github.com/PRBonn/PIN_SLAM).

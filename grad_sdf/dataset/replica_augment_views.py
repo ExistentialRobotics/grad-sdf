@@ -238,8 +238,8 @@ def main():
     parser.add_argument("--original-dir", type=str, required=True, help="Path to the original dataset directory")
     parser.add_argument("--output-dir", type=str, required=True, help="Path to the output dataset directory")
     parser.add_argument("--interval", type=int, default=50, help="insert an upward-looking frame every n frames")
-    parser.add_argument("--n-rolls-per-insertion", type=int, default=1, help="number of rolls per insertion")
-    parser.add_argument("--ignore-existing", action="store_true", help="whether to ignore existing frames")
+    parser.add_argument("--n-rolls-per-insertion", type=int, default=10, help="number of rolls per insertion")
+    parser.add_argument("--keep-existing", action="store_true", help="whether to ignore existing frames")
     parser.add_argument(
         "--scenes",
         type=str,
@@ -255,7 +255,7 @@ def main():
         output_dir=args.output_dir,
         interval=args.interval,
         n_rolls_per_insertion=args.n_rolls_per_insertion,
-        ignore_existing=args.ignore_existing,
+        ignore_existing=not args.keep_existing,
         scenes=args.scenes,
     )
 
