@@ -124,24 +124,18 @@ def add_frames(
 
         pose_idx = len(new_poses)
 
-        new_poses.append(pose_vec)
+        new_poses.append(pose_vec.copy())
         original_depth_fp = os.path.join(original_dir, "results", f"depth{i:06d}.png")
         original_rgb_fp = os.path.join(original_dir, "results", f"frame{i:06d}.jpg")
         dst_depth_fp = os.path.join(results_dir, f"depth{pose_idx:06d}.png")
         dst_rgb_fp = os.path.join(results_dir, f"frame{pose_idx:06d}.jpg")
         if os.path.exists(original_depth_fp) and os.path.exists(original_rgb_fp) and not ignore_existing:
             if original_depth_fp != dst_depth_fp:
-                shutil.copy(
-                    original_depth_fp,
-                    os.path.join(results_dir, f"depth{pose_idx:06d}.png"),
-                )
+                shutil.copy(original_depth_fp, dst_depth_fp)
             if original_rgb_fp != dst_rgb_fp:
-                shutil.copy(
-                    original_rgb_fp,
-                    os.path.join(results_dir, f"frame{pose_idx:06d}.jpg"),
-                )
+                shutil.copy(original_rgb_fp, dst_rgb_fp)
         else:
-            mesh_visualizer.set_camera(pose_vec.reshape(4, 4))
+            mesh_visualizer.set_camera(pose_vec.reshape(4, 4).copy())
             depth_image, rgb_image = mesh_visualizer.render()
 
             depth_image = (depth_image * cam_intrinsics["scale"]).astype(np.uint16)
@@ -149,8 +143,8 @@ def add_frames(
             rgb_image = (rgb_image * 255).astype(np.uint8)
             rgb_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR)
 
-            cv2.imwrite(os.path.join(results_dir, f"frame{pose_idx:06d}.jpg"), rgb_image)
-            cv2.imwrite(os.path.join(results_dir, f"depth{pose_idx:06d}.png"), depth_image)
+            cv2.imwrite(dst_rgb_fp, rgb_image)
+            cv2.imwrite(dst_depth_fp, depth_image)
 
         if (i + 1) % insert_interval == 0:
             poses_to_append = []
@@ -178,7 +172,7 @@ def add_frames(
                 poses_to_append = poses_to_append[:n][::-1] + poses_to_append[1:-1] + poses_to_append[-n:][::-1]
 
             for pose in poses_to_append:
-                pose_idx += 1
+                pose_idx = len(new_poses)
                 new_poses.append(pose.flatten())
 
                 mesh_visualizer.set_camera(pose)

@@ -111,6 +111,10 @@ python grad_sdf/dataset/replica_obb_rotation.py \
     --dataset-dir data/Replica \
     --output-dir data/Replica_preprocessed
 ```
+copy camera parameter to preprocessed data folder
+```bash
+cp data/Replica/cam_params.json data/Replica_preprocessed
+```
 The script [`grad_sdf/dataset/replica_augment_views.py`](grad_sdf/dataset/replica_augment_views.py) is used to augment the Replica dataset with additional virtual camera views (e.g., upward-looking frames) to improve spatial coverage for training.
 ```bash
 python grad_sdf/dataset/replica_augment_views.py \

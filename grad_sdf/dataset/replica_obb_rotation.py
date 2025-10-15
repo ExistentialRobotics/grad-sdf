@@ -4,6 +4,7 @@ import os
 import numpy as np
 import open3d as o3d
 import transforms3d as t3d
+import trimesh
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -46,7 +47,11 @@ for mesh_path in mesh_path_list:
         continue
 
     print(mesh_path)
-    mesh: o3d.geometry.TriangleMesh = o3d.io.read_triangle_mesh(mesh_path)
+    tri_mesh = trimesh.load(mesh_path)
+    mesh: o3d.geometry.TriangleMesh = o3d.geometry.TriangleMesh()
+    mesh.vertices = o3d.utility.Vector3dVector(np.array(tri_mesh.vertices).astype(np.float64))
+    mesh.triangles = o3d.utility.Vector3iVector(np.array(tri_mesh.faces).astype(np.int32))
+    mesh.vertex_normals = o3d.utility.Vector3dVector(np.array(tri_mesh.vertex_normals).astype(np.float64))
     mesh.remove_degenerate_triangles()
     mesh.compute_vertex_normals()
 
