@@ -16,6 +16,7 @@ $\nabla$-SDF is a hybrid SDF reconstruction framework that combines gradient-aug
 <div align="center">
   <img src="assets/grad-sdf.gif" width="600" alt="SDF Mapping Demo">
 </div>
+
 ## Installation
 
 ### Prerequisites
@@ -136,7 +137,7 @@ python grad_sdf/trainer.py  --config configs/v2/replica_room0.yaml
 
 ### Run GUI Trainer
 
-The GUI trainer allows interactive visualization and monitoring of the training process, including SDF field evolution, octree structure, and camera poses.
+The GUI trainer allows interactive visualization and monitoring of the training process, including SDF slice, octree structure, and camera poses.
 
 ```bash
 python grad_sdf/gui_trainer.py \
