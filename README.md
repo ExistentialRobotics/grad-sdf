@@ -13,8 +13,9 @@ This repository contains the code for the paper: **$\nabla$-SDF: Learning Euclid
 
 $\nabla$-SDF is a hybrid SDF reconstruction framework that combines gradient-augmented octree interpolation with an implicit neural residual to achieve efficient, continuous non-truncated, and highly accurate Euclidean SDF mapping..
 
-TODO: figures, GIFs, videos, etc.
-
+<div align="center">
+  <img src="assets/grad-sdf.gif" width="600" alt="SDF Mapping Demo">
+</div>
 ## Installation
 
 ### Prerequisites
