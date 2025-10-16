@@ -99,10 +99,8 @@ TODO: figures, GIFs, videos, etc.
 
 ## Prepare Dataset
 
-Download NICE-SLAM Replica Dataset
-```bash
-bash scripts/download_replica.sh
-```
+Download Replica Dataset (only mesh, camera parameter and trajectory) at [One-Drive Link](https://ucsdcloud-my.sharepoint.com/my?id=%2Fpersonal%2Fzhdai%5Fucsd%5Fedu%2FDocuments%2FPublicShare%2Fgrad%2Dsdf%2Freplica%2Etar%2Egz&parent=%2Fpersonal%2Fzhdai%5Fucsd%5Fedu%2FDocuments%2FPublicShare%2Fgrad%2Dsdf&ga=1)
+
 Run the following commands to preprocess the Replica dataset:
 
 The script [`grad_sdf/dataset/replica_obb_rotation.py`](grad_sdf/dataset/replica_obb_rotation.py) is used to rotate mesh and trajectory to better match octree.
