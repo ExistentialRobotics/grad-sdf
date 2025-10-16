@@ -31,7 +31,7 @@ class DataLoader(Dataset):
         if self.bound_min is None or self.bound_max is None:
             scene_name = osp.basename(osp.abspath(data_path))
             mesh_path = osp.join(osp.dirname(data_path), f"{scene_name}_mesh.ply")
-            assert osp.exists(mesh_path)
+            assert osp.exists(mesh_path), f"Mesh file {mesh_path} does not exist."
             mesh: o3d.geometry.TriangleMesh = o3d.io.read_triangle_mesh(mesh_path)
             self.bound_min = np.min(mesh.vertices[:], axis=0).flatten().tolist()
             self.bound_max = np.max(mesh.vertices[:], axis=0).flatten().tolist()

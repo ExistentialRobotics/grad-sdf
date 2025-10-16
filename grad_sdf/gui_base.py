@@ -403,6 +403,7 @@ def video_writer_process(queue_in: mp.Queue, queue_out: mp.Queue):
 
     def write_frame(writer, frame):
         if writer is not None and frame is not None:
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)  # Note: RGB to BGR for video
             writer.write(frame)
 
     def close_video_writer(writer):
@@ -1962,7 +1963,6 @@ class GuiBase:
             width = self.widget3d_width
             app = o3d.visualization.gui.Application.instance
             img = np.asarray(app.render_to_image(self.widget3d.scene, width, height))
-            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)  # Note: RGB to BGR for video
 
             self.video_queue_in.put_nowait(VideoFrame(frame=img))
         except Exception as e:
