@@ -67,7 +67,10 @@
     <div class="container is-max-desktop">
       <div class="columns is-centered">
         <div class="column has-text-centered">
-          <h1 class="title is-1 publication-title">SplatSDF: Boosting SDF-NeRF via Architecture-Level Fusion with Gaussian Splats</h1>
+          <h1 class="title is-1 publication-title">
+            $\nabla$-SDF: Learning Euclidean Signed Distance Functions Online with 
+            Gradient-Augmented Octree Interpolation and Neural Residual
+          </h1>
           <div class="is-size-3 publication-authors">
             <span class="author-block">
               <!--HAHA<sup>1</sup>, HAHA<sup>1</sup>, HAHA<sup>1</sup>--> </span> 
@@ -88,6 +91,18 @@
   </div>
 </section>
 
+<!-- GIF Section -->
+<section class="section">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <div class="content has-text-centered">
+          <img src="static/results/grad-sdf.gif" alt="Method Demo" style="max-width: 100%; height: auto; border-radius: 8px;">
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <section class="section">
   <div class="container is-max-desktop">
@@ -97,19 +112,16 @@
         <h2 class="title is-3">Abstract</h2>
         <div class="content has-text-justified">
           <p>
-          Signed distance-radiance field (SDF-NeRF) is a promising environment representation that offers both photorealistic 
-            rendering and geometric reasoning such as proximity queries for collision avoidance.
-          However, the slow training speed and convergence of SDF-NeRF hinder their use in practical robotic systems. 
-            We propose SplatSDF, a novel SDF-NeRF architecture that accelerates convergence using 3D Gaussian splats (3DGS), which can be quickly pre-trained. 
-          Unlike prior approaches that introduce a consistency loss between separate 3DGS and SDF-NeRF models, 
-            SplatSDF directly fuses 3DGS at an architectural level by consuming it as an input to SDF-NeRF during training.
-        This is achieved using a novel <em>sparse 3DGS fusion</em> strategy that injects neural embeddings of 3DGS into SDF-NeRF around the object surface, 
-            while also permitting inference without 3DGS for minimal operation. 
-            Experimental results show SplatSDF achieves $3\times$ faster convergence to the same geometric accuracy than the best baseline, 
-            and outperforms state-of-the-art SDF-NeRF methods in terms of chamfer distance and peak signal to noise ratio, 
-            unlike consistency loss-based approaches that in fact provide limited gains.
-We also present computational techniques for accelerating gradient and Hessian steps by $3\times$.
-We expect these improvements will contribute to deploying SDF-NeRF on practical systems. 
+            Estimation of signed distance functions (SDFs) from point cloud data has been shown to benefit many robot autonomy capabilities, 
+            including localization, mapping, motion planning, and control. Methods that support online and large-scale SDF reconstruction 
+            tend to rely on discrete volumetric data structures, which affect the continuity and differentiability of the SDF estimates. 
+            Recently, using implicit features, neural network methods have demonstrated high-fidelity and differentiable SDF reconstruction 
+            but they tend to be less efficient, can experience catastrophic forgetting and memory limitations in large environments, 
+            and are often restricted to truncated SDFs. This work proposes $\nabla$-SDF, a hybrid method that combines an explicit prior 
+            obtained from gradient-augmented octree interpolation with an implicit neural residual. Our method achieves non-truncated 
+            (Euclidean) SDF reconstruction with computational and memory efficiency comparable to volumetric methods and differentiability 
+            and accuracy comparable to neural network methods. Extensive experiments demonstrate that $\nabla$-SDF outperforms the state 
+            of the art in terms of accuracy and efficiency, providing a scalable solution for downstream tasks in robotics and computer vision.
           </p>
         </div>
       </div>
@@ -120,21 +132,17 @@ We expect these improvements will contribute to deploying SDF-NeRF on practical 
         <h2 class="title is-3">Overview</h2>
         <div class="content has-text-justified">
             <div class="content has-text-justified">
-                <p>
-                   SplatSDF takes posed RGB images and 3DGS to train an SDF-NeRF model. We use
-    3DGS-rendered depth to identify the anchor point and shift the closest query
-    point to the anchor point. With a shared hash encoder, we construct query-point
-    SDF embeddings \(e_{sdf}\) and 3DGS embeddings \(e_{gs}\). Our method applies
-    a <em>3DGS aggregator</em> to merge the 3DGS attributes: mean \(\mu\), covariance
-    \(\Sigma\), color \(c\), and spherical harmonics \(SH\). A novel
-    <em>surface 3DGS fusion</em> strategy merges \(e_{gs}\) and \(e_{sdf}\) only around
-    the anchor points and regress the SDF value. The SDF value is converted
-    to per-point density \(\sigma(x)\). We take the geometric features \(g(x)\),
-    the surface normal from SDF \(n(x)\), the query-point coordinates \(x\) and
-    the viewing angle \(v\) to estimate per-point color \(c(x)\) and obtain the
-    per-pixel color \(\hat{C}\) by volumetric rendering, supervised with input
-    images. Our contribution is the design of the <em>3DGS aggregator</em> and the <em>surface 3DGS fusion</em>.
-                </p>
+                  <p>
+                   Method Overview: a) We keep key frames with small overlap and those that maximize the surface coverage for training; 
+                   b) with the selected key frames and the current frame, we generate three types of samples: 
+                   <span style="color: red;">surface</span> points, <span style="color: orange;">perturbed</span> points around the surface, and <span style="color: cyan;">free-space</span> points; 
+                   c) to predict SDF, we first obtain an SDF prior \(d_{ga}(\mathbf{x})\) with gradient-augmented interpolation in a semi-sparse octree, 
+                   where each octant vertex has estimated SDF value and gradient; 
+                   d) a multi-resolution hash grid with an MLP decoder is used to obtain an SDF residual correction \(\delta_d(\mathbf{x})\); 
+                   e) the SDF prior \(d_{ga}(\mathbf{x})\) and the SDF residual \(\delta_d(\mathbf{x})\) are combined as the final SDF prediction 
+                   \(\hat{d}(\mathbf{x}) = d_{ga}(\mathbf{x}) + \delta_d(\mathbf{x})\), and the parameters are trained with three loss functions: 
+                   <span style="color: red;">reconstruction</span> loss, <span style="color: violet;">Eikonal</span> loss and <span style="color: green;">projection</span> loss.
+                  </p>
               </div>
               <div class="b-dics" style="float: center">
                 <img id="overview" src="pipeline.png", class="img-spacing">
@@ -151,7 +159,7 @@ We expect these improvements will contribute to deploying SDF-NeRF on practical 
         <li role="presentation"><a href="javascript: void(0);" onclick="ChangeScene(1);">Ship</a></li>
       </ul>
 
-      <h2 class="subtitle is-4"> Epochs </h2>
+      <h2 class="subtitle is-4"> Height (Z-axis) </h2>
       <ul class="nav nav-pills nav-justified" id="image-result-view-ul" style="width: 60%">
         <li role="presentation" class="active"><a href="javascript: void(0);"
             onclick="ChangeEpochImage(0);">500</a>
@@ -165,8 +173,8 @@ We expect these improvements will contribute to deploying SDF-NeRF on practical 
 
       <div class="content has-text-justified">
         <div class="b-dics" style="float: center">
-          <img id="scene-image-neuralangelo" src="static/results/lego/image/neuralangelo/500.png" alt="Neuralangelo" />
-          <img id="scene-image-ours" src="static/results/lego/image/ours/500.png" alt="SplatSDF" />
+          <img id="scene-image-neuralangelo" src="static/results/sdf-slice/hio-sdf/hiosdf-sdf-slice-room0.png" alt="HIO-SDF" />
+          <img id="scene-image-ours" src="static/results/sdf-slice/ours/grad-sdf-slice-room0.png" alt="Ours" />
         </div>
       </div>
 
