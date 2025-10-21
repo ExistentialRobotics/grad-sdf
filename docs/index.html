@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="description"
+        content="CVPR Paper">
+  <meta name="keywords" content="3D Gaussian Splatting, 3D Reconstruction">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Paper Title</title>
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans%7CNoto+Sans%7CCastoro"
+        rel="stylesheet">
+
+  <link rel="stylesheet" href="static/css/bulma.min.css">
+  <link rel="stylesheet" href="static/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="static/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="static/css/fontawesome.all.min.css">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="static/css/index.css">
+  <link rel="icon" href="https://scientistrocknroll.github.io/splatsdf/static/images/favicon.svg">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script defer src="static/js/fontawesome.all.min.js"></script>
+  <script src="static/js/bulma-carousel.min.js"></script>
+  <script src="static/js/bulma-slider.min.js"></script>
+  <script src="static/js/index.js"></script>
+  <!-- select -->
+  <link rel="stylesheet" href="static/css/bootstrap.min.css">
+  <link rel="stylesheet" href="static/css/app.css">
+  <link rel="stylesheet" href="static/css/select.css">
+  <script src="static/js/select.js"></script>
+
+ <!-- MathJax (LaTeX in HTML) -->
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], processEscapes: true },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script id="MathJax-script" async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+  
+  <!-- for image slider -->
+  <script src="static/js/video_comparison.js"></script>
+  <link rel="stylesheet" href="static/css/dics.min.css">
+  <script src="static/js/dics.min.js"></script>
+  <script>
+      document.addEventListener('DOMContentLoaded', domReady);
+      function domReady() {
+          for (const e of document.querySelectorAll(".b-dics")) {
+              new Dics({
+                  container: e,
+                  textPosition: "top"
+              });
+          }
+      }
+  </script>
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
+</head>
+
+<body>
+
+<section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <h1 class="title is-1 publication-title">SplatSDF: Boosting SDF-NeRF via Architecture-Level Fusion with Gaussian Splats</h1>
+          <div class="is-size-3 publication-authors">
+            <span class="author-block">
+              <!--HAHA<sup>1</sup>, HAHA<sup>1</sup>, HAHA<sup>1</sup>--> </span> 
+          </div>
+
+          <div class="is-size-3 publication-authors">
+            <span class="author-block"></span>
+          </div>
+
+          <div class="column has-text-centered">
+            <div class="publication-links">
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <!-- Abstract. -->
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">Abstract</h2>
+        <div class="content has-text-justified">
+          <p>
+          Signed distance-radiance field (SDF-NeRF) is a promising environment representation that offers both photorealistic 
+            rendering and geometric reasoning such as proximity queries for collision avoidance.
+          However, the slow training speed and convergence of SDF-NeRF hinder their use in practical robotic systems. 
+            We propose SplatSDF, a novel SDF-NeRF architecture that accelerates convergence using 3D Gaussian splats (3DGS), which can be quickly pre-trained. 
+          Unlike prior approaches that introduce a consistency loss between separate 3DGS and SDF-NeRF models, 
+            SplatSDF directly fuses 3DGS at an architectural level by consuming it as an input to SDF-NeRF during training.
+        This is achieved using a novel <em>sparse 3DGS fusion</em> strategy that injects neural embeddings of 3DGS into SDF-NeRF around the object surface, 
+            while also permitting inference without 3DGS for minimal operation. 
+            Experimental results show SplatSDF achieves $3\times$ faster convergence to the same geometric accuracy than the best baseline, 
+            and outperforms state-of-the-art SDF-NeRF methods in terms of chamfer distance and peak signal to noise ratio, 
+            unlike consistency loss-based approaches that in fact provide limited gains.
+We also present computational techniques for accelerating gradient and Hessian steps by $3\times$.
+We expect these improvements will contribute to deploying SDF-NeRF on practical systems. 
+          </p>
+        </div>
+      </div>
+    </div>
+    <!--/ Abstract. -->
+
+    <center>
+        <h2 class="title is-3">Overview</h2>
+        <div class="content has-text-justified">
+            <div class="content has-text-justified">
+                <p>
+                   SplatSDF takes posed RGB images and 3DGS to train an SDF-NeRF model. We use
+    3DGS-rendered depth to identify the anchor point and shift the closest query
+    point to the anchor point. With a shared hash encoder, we construct query-point
+    SDF embeddings \(e_{sdf}\) and 3DGS embeddings \(e_{gs}\). Our method applies
+    a <em>3DGS aggregator</em> to merge the 3DGS attributes: mean \(\mu\), covariance
+    \(\Sigma\), color \(c\), and spherical harmonics \(SH\). A novel
+    <em>surface 3DGS fusion</em> strategy merges \(e_{gs}\) and \(e_{sdf}\) only around
+    the anchor points and regress the SDF value. The SDF value is converted
+    to per-point density \(\sigma(x)\). We take the geometric features \(g(x)\),
+    the surface normal from SDF \(n(x)\), the query-point coordinates \(x\) and
+    the viewing angle \(v\) to estimate per-point color \(c(x)\) and obtain the
+    per-pixel color \(\hat{C}\) by volumetric rendering, supervised with input
+    images. Our contribution is the design of the <em>3DGS aggregator</em> and the <em>surface 3DGS fusion</em>.
+                </p>
+              </div>
+              <div class="b-dics" style="float: center">
+                <img id="overview" src="pipeline.png", class="img-spacing">
+              </div>
+          </div>
+    
+    <center>
+      <h2 class="title is-3">Results</h2>
+      <h2 class="subtitle is-4"> Scene </h2>
+      <ul class="nav nav-pills nav-justified" id="scene-result-view-ul" style="width: 60%">
+        <li role="presentation" class="active"><a href="javascript: void(0);"
+            onclick="ChangeScene(0);">Lego</a>
+        </li>
+        <li role="presentation"><a href="javascript: void(0);" onclick="ChangeScene(1);">Ship</a></li>
+      </ul>
+
+      <h2 class="subtitle is-4"> Epochs </h2>
+      <ul class="nav nav-pills nav-justified" id="image-result-view-ul" style="width: 60%">
+        <li role="presentation" class="active"><a href="javascript: void(0);"
+            onclick="ChangeEpochImage(0);">500</a>
+        </li>
+        <li role="presentation"><a href="javascript: void(0);" onclick="ChangeEpochImage(1);">1000</a></li>
+        <li role="presentation"><a href="javascript: void(0);" onclick="ChangeEpochImage(2);">1500</a></li>
+        <li role="presentation"><a href="javascript: void(0);" onclick="ChangeEpochImage(3);">2000</a></li>
+        <li role="presentation"><a href="javascript: void(0);" onclick="ChangeEpochImage(4);">2500</a></li>
+        <li role="presentation"><a href="javascript: void(0);" onclick="ChangeEpochImage(5);">3000</a></li>
+      </ul>
+
+      <div class="content has-text-justified">
+        <div class="b-dics" style="float: center">
+          <img id="scene-image-neuralangelo" src="static/results/lego/image/neuralangelo/500.png" alt="Neuralangelo" />
+          <img id="scene-image-ours" src="static/results/lego/image/ours/500.png" alt="SplatSDF" />
+        </div>
+      </div>
+
+      <h2 class="subtitle is-4"> Epochs </h2>
+      <ul class="nav nav-pills nav-justified" id="video-result-view-ul" style="width: 60%">
+        <li role="presentation" class="active"><a href="javascript: void(0);"
+            onclick="ChangeEpoch(0);">500</a>
+        </li>
+        <li role="presentation"><a href="javascript: void(0);" onclick="ChangeEpoch(1);">1500</a></li>
+        <li role="presentation"><a href="javascript: void(0);" onclick="ChangeEpoch(2);">3000</a></li>
+      </ul>
+      
+        <div>
+          <video class="video" id="video_scene" loop playsinline autoPlay muted
+          src="./static/results/lego/video/500.mp4" onplay="resizeAndPlay(this)"></video>
+          <canvas class="videoMerge" id="video_scene_merge"></canvas>
+        </div>
+
+        <h2 class="subtitle is-3"> 3D Model Comparison </h2>
+        <div class="grid-container-2">
+          <div class="model-block">
+            <p class="myprompt nerf_text"> Neuralangelo</p>
+            <model-viewer 
+              src="./static/results/lego/mesh/neuralangelo.glb"
+              id="mesh-neuralangelo"
+              alt="3D model reconstructed with Neuralangelo"
+              exposure="1.0"
+              auto-rotate
+              camera-controls
+              shadow-intensity="1"
+              style="width: 100%; height: 500px; background-color: #000000">
+            </model-viewer>
+          </div>
+
+          <div class="model-block">
+            <p class="myprompt nerf_text"> Ours</p>
+            <model-viewer 
+              src="./static/results/lego/mesh/ours.glb"
+              id="mesh-ours"
+              alt="3D model reconstructed with our method"
+              exposure="1.0"
+              auto-rotate
+              camera-controls
+              shadow-intensity="1"
+              style="width: 100%; height: 500px; background-color: #000000">
+            </model-viewer>
+          </div>
+        </div>
+      
+    </center>
+  
+  </div>
+</section>
+
+
+
+</body>
+
+</html>
+
+
+
+
+
