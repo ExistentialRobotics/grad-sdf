@@ -151,34 +151,46 @@
     
     <center>
       <h2 class="title is-3">Results</h2>
-      <h2 class="subtitle is-4"> Scene </h2>
+      <!-- <h2 class="subtitle is-4"> Scene </h2>
       <ul class="nav nav-pills nav-justified" id="scene-result-view-ul" style="width: 60%">
         <li role="presentation" class="active"><a href="javascript: void(0);"
             onclick="ChangeScene(0);">Lego</a>
         </li>
         <li role="presentation"><a href="javascript: void(0);" onclick="ChangeScene(1);">Ship</a></li>
-      </ul>
-
-      <h2 class="subtitle is-4"> Height (Z-axis) </h2>
-      <ul class="nav nav-pills nav-justified" id="image-result-view-ul" style="width: 60%">
-        <li role="presentation" class="active"><a href="javascript: void(0);"
-            onclick="ChangeEpochImage(0);">500</a>
-        </li>
-        <li role="presentation"><a href="javascript: void(0);" onclick="ChangeEpochImage(1);">1000</a></li>
-        <li role="presentation"><a href="javascript: void(0);" onclick="ChangeEpochImage(2);">1500</a></li>
-        <li role="presentation"><a href="javascript: void(0);" onclick="ChangeEpochImage(3);">2000</a></li>
-        <li role="presentation"><a href="javascript: void(0);" onclick="ChangeEpochImage(4);">2500</a></li>
-        <li role="presentation"><a href="javascript: void(0);" onclick="ChangeEpochImage(5);">3000</a></li>
-      </ul>
+      </ul> -->
 
       <div class="content has-text-justified">
-        <div class="b-dics" style="float: center">
-          <img id="scene-image-neuralangelo" src="static/results/sdf-slice/hio-sdf/hiosdf-sdf-slice-room0.png" alt="HIO-SDF" />
-          <img id="scene-image-ours" src="static/results/sdf-slice/ours/grad-sdf-slice-room0.png" alt="Ours" />
+        <div class="columns is-mobile is-gapless" style="margin: 0 auto; max-width: 100%;">
+          <div class="column is-half">
+            <h3 class="subtitle is-5 has-text-centered">Left Method</h3>
+            <ul class="nav nav-pills nav-justified" id="left-method-ul" style="width: 80%; margin-bottom: 10px; font-size: 0.5rem;">
+              <li role="presentation" class="active"><a href="javascript: void(0);" onclick="ChangeLeftMethod(0);" style="padding: 3px 6px; white-space: nowrap;">GT</a></li>
+              <li role="presentation"><a href="javascript: void(0);" onclick="ChangeLeftMethod(1);" style="padding: 3px 6px; white-space: nowrap;">Ours</a></li>
+              <li role="presentation"><a href="javascript: void(0);" onclick="ChangeLeftMethod(2);" style="padding: 3px 6px; white-space: nowrap;">HIO-SDF</a></li>
+              <li role="presentation"><a href="javascript: void(0);" onclick="ChangeLeftMethod(3);" style="padding: 3px 6px; white-space: nowrap;">H2-Mapping</a></li>
+              <li role="presentation"><a href="javascript: void(0);" onclick="ChangeLeftMethod(4);" style="padding: 3px 6px; white-space: nowrap;">PIN-SLAM</a></li>
+              <li role="presentation"><a href="javascript: void(0);" onclick="ChangeLeftMethod(5);" style="padding: 3px 6px; white-space: nowrap;">Voxblox</a></li>
+            </ul>
+            <img id="scene-image-left" src="static/results/sdf-slice/gt/gt-sdf-slice-room0.png" alt="Left Method" style="width: 100%; display: block;" />
+            <p id="left-method-label" class="has-text-centered"><strong>GT</strong></p>
+          </div>
+          <div class="column is-half">
+            <h3 class="subtitle is-5 has-text-centered">Right Method</h3>
+            <ul class="nav nav-pills nav-justified" id="right-method-ul" style="width: 80%; margin-bottom: 10px; font-size: 0.5rem;">
+              <li role="presentation"><a href="javascript: void(0);" onclick="ChangeRightMethod(0);" style="padding: 3px 6px; white-space: nowrap;">GT</a></li>
+              <li role="presentation" class="active"><a href="javascript: void(0);" onclick="ChangeRightMethod(1);" style="padding: 3px 6px; white-space: nowrap;">Ours</a></li>
+              <li role="presentation"><a href="javascript: void(0);" onclick="ChangeRightMethod(2);" style="padding: 3px 6px; white-space: nowrap;">HIO-SDF</a></li>
+              <li role="presentation"><a href="javascript: void(0);" onclick="ChangeRightMethod(3);" style="padding: 3px 6px; white-space: nowrap;">H2-Mapping</a></li>
+              <li role="presentation"><a href="javascript: void(0);" onclick="ChangeRightMethod(4);" style="padding: 3px 6px; white-space: nowrap;">PIN-SLAM</a></li>
+              <li role="presentation"><a href="javascript: void(0);" onclick="ChangeRightMethod(5);" style="padding: 3px 6px; white-space: nowrap;">Voxblox</a></li>
+            </ul>
+            <img id="scene-image-right" src="static/results/sdf-slice/ours/ours-sdf-slice-room0.png" alt="Right Method" style="width: 100%; display: block;" />
+            <p id="right-method-label" class="has-text-centered"><strong>Ours</strong></p>
+          </div>
         </div>
       </div>
 
-      <h2 class="subtitle is-4"> Epochs </h2>
+      <!-- <h2 class="subtitle is-4"> Epochs </h2>
       <ul class="nav nav-pills nav-justified" id="video-result-view-ul" style="width: 60%">
         <li role="presentation" class="active"><a href="javascript: void(0);"
             onclick="ChangeEpoch(0);">500</a>
@@ -222,7 +234,7 @@
               style="width: 100%; height: 500px; background-color: #000000">
             </model-viewer>
           </div>
-        </div>
+        </div> -->
       
     </center>
   

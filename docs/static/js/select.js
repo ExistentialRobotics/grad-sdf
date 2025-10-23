@@ -16,6 +16,16 @@ const sceneButtonTextsImage = {
   1: ["500", "1000", "1500", "2500", "3500", "5000"], // Ship
 };
 
+// Method selection variables
+var currentLeftMethod = "gt";
+var currentLeftMethodId = 0;
+var currentRightMethod = "ours";
+var currentRightMethodId = 1;
+
+const methodList = ["gt", "ours", "hiosdf", "h2mapping", "pinslam", "voxblox"];
+const methodLabels = ["GT", "Ours", "HIO-SDF", "H2-Mapping", "PinSLAM", "Voxblox"];
+const methodFileNames = ["gt", "ours", "hiosdf", "h2mapping", "pinslam", "voxblox"];
+
 function ChangeScene(idx){
   var li_list = document.getElementById("scene-result-view-ul").children;
   for(i = 0; i < li_list.length; i++){
@@ -144,4 +154,49 @@ function ChangeEpochImage(idx){
   new_scr2[new_scr2.length-1] = currentEpochImage + ".png";
   new_image_dir2 = new_scr2.join('/');
   image2.src = new_image_dir2;
+}
+
+// New functions for method selection
+function ChangeLeftMethod(idx){
+  var li_list = document.getElementById("left-method-ul").children;
+  for(i = 0; i < li_list.length; i++){
+      li_list[i].className = "";
+  }
+  li_list[idx].className = "active";
+
+  currentLeftMethod = methodList[idx];
+  currentLeftMethodId = idx;
+  
+  let image = document.getElementById("scene-image-left");
+  let label = document.getElementById("left-method-label");
+  
+  // Update image source
+  let fileName = methodFileNames[idx];
+  let newSrc = `static/results/sdf-slice/${currentLeftMethod}/${fileName}-sdf-slice-room0.png`;
+  image.src = newSrc;
+  
+  // Update label
+  label.innerHTML = `<strong>${methodLabels[idx]}</strong>`;
+}
+
+function ChangeRightMethod(idx){
+  var li_list = document.getElementById("right-method-ul").children;
+  for(i = 0; i < li_list.length; i++){
+      li_list[i].className = "";
+  }
+  li_list[idx].className = "active";
+
+  currentRightMethod = methodList[idx];
+  currentRightMethodId = idx;
+  
+  let image = document.getElementById("scene-image-right");
+  let label = document.getElementById("right-method-label");
+  
+  // Update image source
+  let fileName = methodFileNames[idx];
+  let newSrc = `static/results/sdf-slice/${currentRightMethod}/${fileName}-sdf-slice-room0.png`;
+  image.src = newSrc;
+  
+  // Update label
+  label.innerHTML = `<strong>${methodLabels[idx]}</strong>`;
 }
