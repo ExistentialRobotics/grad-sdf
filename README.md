@@ -182,6 +182,20 @@ docker run --privileged --restart always -t \
 
 ## Citation
 
+If you find this work useful in your research, please consider citing:
+
+```bibtex
+@misc{dai2025nablasdf,
+      title={{$\nabla$-SDF: Learning Euclidean Signed Distance Functions Online with Gradient-Augmented Octree Interpolation and Neural Residual}}, 
+      author={Zhirui Dai and Qihao Qian and Tianxing Fan and Nikolay Atanasov},
+      year={2025},
+      eprint={2510.18999},
+      archivePrefix={arXiv},
+      primaryClass={cs.RO},
+      url={https://arxiv.org/abs/2510.18999}, 
+}
+```
+
 ## Acknowledgement
 
 - We develop our key frame selection strategy based on [H2-Mapping](https://github.com/Robotics-STAR-Lab/H2-Mapping).
