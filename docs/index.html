@@ -1,22 +1,20 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="utf-8">
-  <meta name="description"
-        content="CVPR Paper">
-  <meta name="keywords" content="3D Gaussian Splatting, 3D Reconstruction">
+  <meta name="description" content="ICRA Paper">
+  <meta name="keywords" content="Signed Distance Functions, 3D Reconstruction, Octree, Neural Networks, Robotics">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Paper Title</title>
+  <title>Grad-SDF</title>
 
-  <link href="https://fonts.googleapis.com/css?family=Google+Sans%7CNoto+Sans%7CCastoro"
-        rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans%7CNoto+Sans%7CCastoro" rel="stylesheet">
 
   <link rel="stylesheet" href="static/css/bulma.min.css">
   <link rel="stylesheet" href="static/css/bulma-carousel.min.css">
   <link rel="stylesheet" href="static/css/bulma-slider.min.css">
   <link rel="stylesheet" href="static/css/fontawesome.all.min.css">
-  <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
   <link rel="stylesheet" href="static/css/index.css">
   <link rel="icon" href="https://scientistrocknroll.github.io/splatsdf/static/images/favicon.svg">
 
@@ -31,127 +29,160 @@
   <link rel="stylesheet" href="static/css/select.css">
   <script src="static/js/select.js"></script>
 
- <!-- MathJax (LaTeX in HTML) -->
-<script>
-  window.MathJax = {
-    tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], processEscapes: true },
-    svg: { fontCache: 'global' }
-  };
-</script>
-<script id="MathJax-script" async
-        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+  <!-- MathJax (LaTeX in HTML) -->
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], processEscapes: true },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 
-  
+
   <!-- for image slider -->
   <script src="static/js/video_comparison.js"></script>
   <link rel="stylesheet" href="static/css/dics.min.css">
   <script src="static/js/dics.min.js"></script>
   <script>
-      document.addEventListener('DOMContentLoaded', domReady);
-      function domReady() {
-          for (const e of document.querySelectorAll(".b-dics")) {
-              new Dics({
-                  container: e,
-                  textPosition: "top"
-              });
-          }
+    document.addEventListener('DOMContentLoaded', domReady);
+    function domReady() {
+      for (const e of document.querySelectorAll(".b-dics")) {
+        new Dics({
+          container: e,
+          textPosition: "top"
+        });
       }
+    }
   </script>
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
 </head>
 
 <body>
 
-<section class="hero">
-  <div class="hero-body">
-    <div class="container is-max-desktop">
-      <div class="columns is-centered">
-        <div class="column has-text-centered">
-          <h1 class="title is-1 publication-title">
-            $\nabla$-SDF: Learning Euclidean Signed Distance Functions Online with 
-            Gradient-Augmented Octree Interpolation and Neural Residual
-          </h1>
-          <div class="is-size-3 publication-authors">
-            <span class="author-block">
-              <!--HAHA<sup>1</sup>, HAHA<sup>1</sup>, HAHA<sup>1</sup>--> </span> 
-          </div>
-
-          <div class="is-size-3 publication-authors">
-            <span class="author-block"></span>
-          </div>
-
+  <section class="hero">
+    <div class="hero-body">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered">
           <div class="column has-text-centered">
-            <div class="publication-links">
+            <h1 class="title is-1 publication-title">
+              $\nabla$-SDF: Learning Euclidean Signed Distance Functions Online with
+              Gradient-Augmented Octree Interpolation and Neural Residual
+            </h1>
+            <div class="is-size-2 publication-authors">
+              <span class="author-block">
+                Zhirui Dai<sup>1*</sup>, Qihao Qian<sup>1*</sup>, Tianxing Fan<sup>1</sup>, Nikolay Atanasov<sup>1</sup>
+                <!--HAHA<sup>1</sup>, HAHA<sup>1</sup>, HAHA<sup>1</sup>--> </span>
+            </div>
+
+            <div class="is-size-3 publication-affiliations">
+              <span class="affiliation-block">
+                <sup>*</sup>Equal contribution
+                <sup>1</sup>University of California San Diego
+              </span>
+            </div>
+
+            <div class="column has-text-centered">
+              <div class="publication-links">
+                <a class="button is-link is-medium" href="https://arxiv.org/abs/2510.18999v1" target="_blank">
+                  <span class="icon">
+                    <i class="fas fa-file-pdf"></i>
+                  </span>
+                  <span>arXiv</span>
+                </a>
+
+                <a class="button is-dark is-medium" href="https://github.com/existentialRobotics/grad-sdf"
+                  target="_blank" rel="noopener noreferrer" aria-label="Open repository">
+                  <span class="icon"><i class="fab fa-github"></i></span>
+                  <span>Repo</span>
+                </a>
+              </div>
             </div>
 
           </div>
         </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- GIF Section -->
-<section class="section">
-  <div class="container is-max-desktop">
-    <div class="columns is-centered has-text-centered">
-      <div class="column is-four-fifths">
-        <div class="content has-text-centered">
-          <img src="static/results/grad-sdf.gif" alt="Method Demo" style="max-width: 100%; height: auto; border-radius: 8px;">
+  <!-- GIF Section -->
+  <section class="section">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          <div class="content has-text-centered">
+            <img src="static/results/grad-sdf.gif" alt="Method Demo"
+              style="max-width: 100%; height: auto; border-radius: 8px;">
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<section class="section">
-  <div class="container is-max-desktop">
-    <!-- Abstract. -->
-    <div class="columns is-centered has-text-centered">
-      <div class="column is-four-fifths">
-        <h2 class="title is-3">Abstract</h2>
-        <div class="content has-text-justified">
-          <p>
-            Estimation of signed distance functions (SDFs) from point cloud data has been shown to benefit many robot autonomy capabilities, 
-            including localization, mapping, motion planning, and control. Methods that support online and large-scale SDF reconstruction 
-            tend to rely on discrete volumetric data structures, which affect the continuity and differentiability of the SDF estimates. 
-            Recently, using implicit features, neural network methods have demonstrated high-fidelity and differentiable SDF reconstruction 
-            but they tend to be less efficient, can experience catastrophic forgetting and memory limitations in large environments, 
-            and are often restricted to truncated SDFs. This work proposes $\nabla$-SDF, a hybrid method that combines an explicit prior 
-            obtained from gradient-augmented octree interpolation with an implicit neural residual. Our method achieves non-truncated 
-            (Euclidean) SDF reconstruction with computational and memory efficiency comparable to volumetric methods and differentiability 
-            and accuracy comparable to neural network methods. Extensive experiments demonstrate that $\nabla$-SDF outperforms the state 
-            of the art in terms of accuracy and efficiency, providing a scalable solution for downstream tasks in robotics and computer vision.
-          </p>
+  <section class="section">
+    <div class="container is-max-desktop">
+      <!-- Abstract. -->
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          <h2 class="title is-3">Abstract</h2>
+          <div class="content has-text-justified">
+            <p>
+              Estimation of signed distance functions (SDFs) from point cloud data has been shown to benefit many robot
+              autonomy capabilities,
+              including localization, mapping, motion planning, and control. Methods that support online and large-scale
+              SDF reconstruction
+              tend to rely on discrete volumetric data structures, which affect the continuity and differentiability of
+              the SDF estimates.
+              Recently, using implicit features, neural network methods have demonstrated high-fidelity and
+              differentiable SDF reconstruction
+              but they tend to be less efficient, can experience catastrophic forgetting and memory limitations in large
+              environments,
+              and are often restricted to truncated SDFs. This work proposes $\nabla$-SDF, a hybrid method that combines
+              an explicit prior
+              obtained from gradient-augmented octree interpolation with an implicit neural residual. Our method
+              achieves non-truncated
+              (Euclidean) SDF reconstruction with computational and memory efficiency comparable to volumetric methods
+              and differentiability
+              and accuracy comparable to neural network methods. Extensive experiments demonstrate that $\nabla$-SDF
+              outperforms the state
+              of the art in terms of accuracy and efficiency, providing a scalable solution for downstream tasks in
+              robotics and computer vision.
+            </p>
+          </div>
         </div>
       </div>
-    </div>
-    <!--/ Abstract. -->
+      <!--/ Abstract. -->
 
-    <center>
+      <center>
         <h2 class="title is-3">Overview</h2>
         <div class="content has-text-justified">
-            <div class="content has-text-justified">
-                  <p>
-                   Method Overview: a) We keep key frames with small overlap and those that maximize the surface coverage for training; 
-                   b) with the selected key frames and the current frame, we generate three types of samples: 
-                   <span style="color: red;">surface</span> points, <span style="color: orange;">perturbed</span> points around the surface, and <span style="color: cyan;">free-space</span> points; 
-                   c) to predict SDF, we first obtain an SDF prior \(d_{ga}(\mathbf{x})\) with gradient-augmented interpolation in a semi-sparse octree, 
-                   where each octant vertex has estimated SDF value and gradient; 
-                   d) a multi-resolution hash grid with an MLP decoder is used to obtain an SDF residual correction \(\delta_d(\mathbf{x})\); 
-                   e) the SDF prior \(d_{ga}(\mathbf{x})\) and the SDF residual \(\delta_d(\mathbf{x})\) are combined as the final SDF prediction 
-                   \(\hat{d}(\mathbf{x}) = d_{ga}(\mathbf{x}) + \delta_d(\mathbf{x})\), and the parameters are trained with three loss functions: 
-                   <span style="color: red;">reconstruction</span> loss, <span style="color: violet;">Eikonal</span> loss and <span style="color: green;">projection</span> loss.
-                  </p>
-              </div>
-              <div class="b-dics" style="float: center">
-                <img id="overview" src="pipeline.png", class="img-spacing">
-              </div>
+          <div class="content has-text-justified">
+            <p>
+              Method Overview: a) We keep key frames with small overlap and those that maximize the surface coverage for
+              training;
+              b) with the selected key frames and the current frame, we generate three types of samples:
+              <span style="color: red;">surface</span> points, <span style="color: orange;">perturbed</span> points
+              around the surface, and <span style="color: cyan;">free-space</span> points;
+              c) to predict SDF, we first obtain an SDF prior \(d_{ga}(\mathbf{x})\) with gradient-augmented
+              interpolation in a semi-sparse octree,
+              where each octant vertex has estimated SDF value and gradient;
+              d) a multi-resolution hash grid with an MLP decoder is used to obtain an SDF residual correction
+              \(\delta_d(\mathbf{x})\);
+              e) the SDF prior \(d_{ga}(\mathbf{x})\) and the SDF residual \(\delta_d(\mathbf{x})\) are combined as the
+              final SDF prediction
+              \(\hat{d}(\mathbf{x}) = d_{ga}(\mathbf{x}) + \delta_d(\mathbf{x})\), and the parameters are trained with
+              three loss functions:
+              <span style="color: red;">reconstruction</span> loss, <span style="color: violet;">Eikonal</span> loss and
+              <span style="color: green;">projection</span> loss.
+            </p>
           </div>
-    
-    <center>
-      <h2 class="title is-3">Results</h2>
-      <!-- <h2 class="subtitle is-4"> Scene </h2>
+          <div class="b-dics" style="float: center">
+            <img id="overview" src="pipeline.png" , class="img-spacing">
+          </div>
+        </div>
+
+        <center>
+          <h2 class="title is-3">Results</h2>
+          <!-- <h2 class="subtitle is-4"> Scene </h2>
       <ul class="nav nav-pills nav-justified" id="scene-result-view-ul" style="width: 60%">
         <li role="presentation" class="active"><a href="javascript: void(0);"
             onclick="ChangeScene(0);">Lego</a>
@@ -159,38 +190,54 @@
         <li role="presentation"><a href="javascript: void(0);" onclick="ChangeScene(1);">Ship</a></li>
       </ul> -->
 
-      <div class="content has-text-justified">
-        <div class="columns is-mobile is-gapless" style="margin: 0 auto; max-width: 100%;">
-          <div class="column is-half">
-            <h3 class="subtitle is-5 has-text-centered">Left Method</h3>
-            <ul class="nav nav-pills nav-justified" id="left-method-ul" style="width: 80%; margin-bottom: 10px; font-size: 0.5rem;">
-              <li role="presentation" class="active"><a href="javascript: void(0);" onclick="ChangeLeftMethod(0);" style="padding: 3px 6px; white-space: nowrap;">GT</a></li>
-              <li role="presentation"><a href="javascript: void(0);" onclick="ChangeLeftMethod(1);" style="padding: 3px 6px; white-space: nowrap;">Ours</a></li>
-              <li role="presentation"><a href="javascript: void(0);" onclick="ChangeLeftMethod(2);" style="padding: 3px 6px; white-space: nowrap;">HIO-SDF</a></li>
-              <li role="presentation"><a href="javascript: void(0);" onclick="ChangeLeftMethod(3);" style="padding: 3px 6px; white-space: nowrap;">H2-Mapping</a></li>
-              <li role="presentation"><a href="javascript: void(0);" onclick="ChangeLeftMethod(4);" style="padding: 3px 6px; white-space: nowrap;">PIN-SLAM</a></li>
-              <li role="presentation"><a href="javascript: void(0);" onclick="ChangeLeftMethod(5);" style="padding: 3px 6px; white-space: nowrap;">Voxblox</a></li>
-            </ul>
-            <img id="scene-image-left" src="static/results/sdf-slice/gt/gt-sdf-slice-room0.png" alt="Left Method" style="width: 100%; display: block;" />
-            <p id="left-method-label" class="has-text-centered"><strong>GT</strong></p>
+          <div class="content has-text-justified">
+            <div class="columns is-mobile is-gapless" style="margin: 0 auto; max-width: 100%;">
+              <div class="column is-half">
+                <h3 class="subtitle is-5 has-text-centered">Left Method</h3>
+                <ul class="nav nav-pills nav-justified" id="left-method-ul"
+                  style="width: 80%; margin-bottom: 10px; font-size: 0.5rem;">
+                  <li role="presentation" class="active"><a href="javascript: void(0);" onclick="ChangeLeftMethod(0);"
+                      style="padding: 3px 6px; white-space: nowrap;">GT</a></li>
+                  <li role="presentation"><a href="javascript: void(0);" onclick="ChangeLeftMethod(1);"
+                      style="padding: 3px 6px; white-space: nowrap;">Ours</a></li>
+                  <li role="presentation"><a href="javascript: void(0);" onclick="ChangeLeftMethod(2);"
+                      style="padding: 3px 6px; white-space: nowrap;">HIO-SDF</a></li>
+                  <li role="presentation"><a href="javascript: void(0);" onclick="ChangeLeftMethod(3);"
+                      style="padding: 3px 6px; white-space: nowrap;">H2-Mapping</a></li>
+                  <li role="presentation"><a href="javascript: void(0);" onclick="ChangeLeftMethod(4);"
+                      style="padding: 3px 6px; white-space: nowrap;">PIN-SLAM</a></li>
+                  <li role="presentation"><a href="javascript: void(0);" onclick="ChangeLeftMethod(5);"
+                      style="padding: 3px 6px; white-space: nowrap;">Voxblox</a></li>
+                </ul>
+                <img id="scene-image-left" src="static/results/sdf-slice/gt/gt-sdf-slice-room0.png" alt="Left Method"
+                  style="width: 100%; display: block;" />
+                <p id="left-method-label" class="has-text-centered"><strong>GT</strong></p>
+              </div>
+              <div class="column is-half">
+                <h3 class="subtitle is-5 has-text-centered">Right Method</h3>
+                <ul class="nav nav-pills nav-justified" id="right-method-ul"
+                  style="width: 80%; margin-bottom: 10px; font-size: 0.5rem;">
+                  <li role="presentation"><a href="javascript: void(0);" onclick="ChangeRightMethod(0);"
+                      style="padding: 3px 6px; white-space: nowrap;">GT</a></li>
+                  <li role="presentation" class="active"><a href="javascript: void(0);" onclick="ChangeRightMethod(1);"
+                      style="padding: 3px 6px; white-space: nowrap;">Ours</a></li>
+                  <li role="presentation"><a href="javascript: void(0);" onclick="ChangeRightMethod(2);"
+                      style="padding: 3px 6px; white-space: nowrap;">HIO-SDF</a></li>
+                  <li role="presentation"><a href="javascript: void(0);" onclick="ChangeRightMethod(3);"
+                      style="padding: 3px 6px; white-space: nowrap;">H2-Mapping</a></li>
+                  <li role="presentation"><a href="javascript: void(0);" onclick="ChangeRightMethod(4);"
+                      style="padding: 3px 6px; white-space: nowrap;">PIN-SLAM</a></li>
+                  <li role="presentation"><a href="javascript: void(0);" onclick="ChangeRightMethod(5);"
+                      style="padding: 3px 6px; white-space: nowrap;">Voxblox</a></li>
+                </ul>
+                <img id="scene-image-right" src="static/results/sdf-slice/ours/ours-sdf-slice-room0.png"
+                  alt="Right Method" style="width: 100%; display: block;" />
+                <p id="right-method-label" class="has-text-centered"><strong>Ours</strong></p>
+              </div>
+            </div>
           </div>
-          <div class="column is-half">
-            <h3 class="subtitle is-5 has-text-centered">Right Method</h3>
-            <ul class="nav nav-pills nav-justified" id="right-method-ul" style="width: 80%; margin-bottom: 10px; font-size: 0.5rem;">
-              <li role="presentation"><a href="javascript: void(0);" onclick="ChangeRightMethod(0);" style="padding: 3px 6px; white-space: nowrap;">GT</a></li>
-              <li role="presentation" class="active"><a href="javascript: void(0);" onclick="ChangeRightMethod(1);" style="padding: 3px 6px; white-space: nowrap;">Ours</a></li>
-              <li role="presentation"><a href="javascript: void(0);" onclick="ChangeRightMethod(2);" style="padding: 3px 6px; white-space: nowrap;">HIO-SDF</a></li>
-              <li role="presentation"><a href="javascript: void(0);" onclick="ChangeRightMethod(3);" style="padding: 3px 6px; white-space: nowrap;">H2-Mapping</a></li>
-              <li role="presentation"><a href="javascript: void(0);" onclick="ChangeRightMethod(4);" style="padding: 3px 6px; white-space: nowrap;">PIN-SLAM</a></li>
-              <li role="presentation"><a href="javascript: void(0);" onclick="ChangeRightMethod(5);" style="padding: 3px 6px; white-space: nowrap;">Voxblox</a></li>
-            </ul>
-            <img id="scene-image-right" src="static/results/sdf-slice/ours/ours-sdf-slice-room0.png" alt="Right Method" style="width: 100%; display: block;" />
-            <p id="right-method-label" class="has-text-centered"><strong>Ours</strong></p>
-          </div>
-        </div>
-      </div>
 
-      <!-- <h2 class="subtitle is-4"> Epochs </h2>
+          <!-- <h2 class="subtitle is-4"> Epochs </h2>
       <ul class="nav nav-pills nav-justified" id="video-result-view-ul" style="width: 60%">
         <li role="presentation" class="active"><a href="javascript: void(0);"
             onclick="ChangeEpoch(0);">500</a>
@@ -235,19 +282,14 @@
             </model-viewer>
           </div>
         </div> -->
-      
-    </center>
-  
-  </div>
-</section>
+
+        </center>
+
+    </div>
+  </section>
 
 
 
 </body>
 
 </html>
-
-
-
-
-
