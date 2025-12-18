@@ -1,6 +1,9 @@
 #!/usr/bin/bash
 
 SCRIPT_DIR=$(cd $(dirname $0); pwd)
-python ${SCRIPT_DIR}/../grad_sdf/dataset/replica_obb_rotation.py \
-    --dataset-dir /home/daizhirui/DataArchive/Replica-NICE-SLAM \
-    --output-dir /home/daizhirui/DataArchive/Replica-SDF
+DATA_DIR=${DATA_DIR:-${SCRIPT_DIR}/../data/Replica}
+OUTPUT_DIR=${OUTPUT_DIR:-${SCRIPT_DIR}/../data/Replica_preprocessed}
+
+PYTHON_PATH=${SCRIPT_DIR}/.. python ${SCRIPT_DIR}/../grad_sdf/dataset/replica_obb_rotation.py \
+    --dataset-dir ${DATA_DIR} \
+    --output-dir ${OUTPUT_DIR}

@@ -1,13 +1,11 @@
 #!/usr/bin/bash
 
 SCRIPT_DIR=$(cd $(dirname $0); pwd)
-#python ${SCRIPT_DIR}/../grad_sdf/dataset/replica_augment_views.py \
-#    --original-dir /home/daizhirui/DataArchive/Replica-SDF \
-#    --output-dir /home/daizhirui/DataArchive/Replica-SDF-aug \
-#    --interval 50
+DATA_DIR=${DATA_DIR:-${SCRIPT_DIR}/../data/Replica_preprocessed}
 
 python ${SCRIPT_DIR}/../grad_sdf/dataset/replica_augment_views.py \
-    --original-dir /home/daizhirui/DataArchive/Replica-SDF \
-    --output-dir /home/daizhirui/DataArchive/Replica-SDF-aug2 \
+    --original-dir "${DATA_DIR}" \
+    --output-dir "${DATA_DIR}" \
     --interval 50 \
-    --n-rolls-per-insertion 10
+    --n-rolls-per-insertion 10 \
+    --max-roll-of-insertion 1.5707963268

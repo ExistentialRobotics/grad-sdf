@@ -89,6 +89,7 @@ def add_frames(
     output_dir: str,
     insert_interval: int,
     n_rolls_per_insertion: int = 1,
+    max_roll_of_insertion: float = np.pi / 3,
     ignore_existing: bool = True,
 ):
     """
@@ -102,6 +103,7 @@ def add_frames(
         insert_interval: insertion interval, default is to insert an upward-looking frame every 10 frames
         n_rolls_per_insertion: number of rolls per insertion, default is 1 (add the upward-looking frame only). If greater
             than 1, will add additional frames with rolls by 360/n_rolls_per_insert degrees after the frame.
+        max_roll_of_insertion: maximum roll angle for the inserted frames
         ignore_existing: whether to ignore existing frames
     """
     results_dir = os.path.join(output_dir, "results")
@@ -153,7 +155,7 @@ def add_frames(
                 upward_pose[:3, :3] = upward_rotation
                 poses_to_append.append(upward_pose)
             else:
-                step = np.pi / (3 * n_rolls_per_insertion)
+                step = max_roll_of_insertion / n_rolls_per_insertion
                 angle_min = -step * (n_rolls_per_insertion - 1) / 2
                 for j in range(1, n_rolls_per_insertion):
                     angle = angle_min + step * (j - 1)
@@ -197,6 +199,7 @@ def process_all_replica_scenes(
     output_dir: str,
     interval: int,
     n_rolls_per_insertion: int = 1,
+    max_roll_of_insertion: float = np.pi / 3,
     ignore_existing: bool = True,
     scenes: Optional[list] = None,
 ):
@@ -207,6 +210,7 @@ def process_all_replica_scenes(
         interval: insertion interval, insert an upward-looking frame every n frames
         n_rolls_per_insertion: number of rolls per insertion, default is 1 (add the upward-looking frame only). If greater
             than 1, will add additional frames with rolls by 360/n_rolls_per_insert degrees after the frame.
+        max_roll_of_insertion: maximum roll angle for the inserted frames.
         ignore_existing: whether to ignore existing frames
         scenes: list of scene names to process; if None, process all default scenes
     """
@@ -223,6 +227,7 @@ def process_all_replica_scenes(
             output_dir=os.path.join(output_dir, scene),
             insert_interval=interval,
             n_rolls_per_insertion=n_rolls_per_insertion,
+            max_roll_of_insertion=max_roll_of_insertion,
             ignore_existing=ignore_existing,
         )
 
@@ -233,6 +238,7 @@ def main():
     parser.add_argument("--output-dir", type=str, required=True, help="Path to the output dataset directory")
     parser.add_argument("--interval", type=int, default=50, help="insert an upward-looking frame every n frames")
     parser.add_argument("--n-rolls-per-insertion", type=int, default=10, help="number of rolls per insertion")
+    parser.add_argument("--max-roll-of-insertion", type=float, default=np.pi / 3, help="maximum roll angle for inserted frames")
     parser.add_argument("--keep-existing", action="store_true", help="whether to ignore existing frames")
     parser.add_argument(
         "--scenes",
@@ -249,6 +255,7 @@ def main():
         output_dir=args.output_dir,
         interval=args.interval,
         n_rolls_per_insertion=args.n_rolls_per_insertion,
+        max_roll_of_insertion=args.max_roll_of_insertion,
         ignore_existing=not args.keep_existing,
         scenes=args.scenes,
     )
