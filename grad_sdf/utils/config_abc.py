@@ -338,9 +338,9 @@ class ConfigABC:
                         )
                 elif field_type == bool:
                     if default_value:
-                        self.add_argument(f"--no-{argname}", action="store_false", dest=dst, help=help_str)
+                        self.add_argument(f"--no-{argname}", action="store_false", dest=dst, help="Set to False")
                     else:
-                        self.add_argument(flag, action="store_true", dest=dst, help=help_str)
+                        self.add_argument(flag, action="store_true", dest=dst, help="Set to True")
                 elif field_type == dict:
                     self.add_argument(flag, type=eval, default=default_value, required=required, help=help_str)
                 elif field_type == pathlib.Path:

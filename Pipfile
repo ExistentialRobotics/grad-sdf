@@ -4,15 +4,14 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-torch = "2.8.0"
-torchvision = "0.23.0"
+torch = "*"
+torchvision = "*"
 pyyaml = "*"
 opencv-python = "*"
 matplotlib = "*"
 numpy = "*"
 open3d = "*"
 pandas = "*"
-#pytorch3d = {git = "https://github.com/facebookresearch/pytorch3d.git", ref="stable"}
 "ruamel.yaml" = "*"
 scikit-image = "*"
 scipy = "*"

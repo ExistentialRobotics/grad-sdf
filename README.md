@@ -23,7 +23,7 @@ $\nabla$-SDF is a hybrid SDF reconstruction framework that combines gradient-aug
 
 - Ubuntu (24.04 tested) / Arch Linux
 - Python 3.12 (3.10, 3.11 should also work)
-- CUDA 12 (tested with 12.8)
+- CUDA (tested with CUDA 12.8 and PyTorch 2.8.0)
 
 ### Steps
 
@@ -79,7 +79,7 @@ $\nabla$-SDF is a hybrid SDF reconstruction framework that combines gradient-aug
 3. Install other dependencies
 
     ```bash
-    pip install git+https://github.com/facebookresearch/pytorch3d.git@stable
+    pip install --no-build-isolation git+https://github.com/facebookresearch/pytorch3d.git@stable
 
     cd deps/tinycudann
     cmake . -B build -DCMAKE_BUILD_TYPE=Release
