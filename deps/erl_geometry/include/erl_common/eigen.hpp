@@ -3,6 +3,7 @@
 #include "logging.hpp"
 
 #include <Eigen/Dense>
+#include <Eigen/Geometry>
 #include <Eigen/Sparse>
 
 #ifdef ERL_USE_ABSL
@@ -82,25 +83,25 @@ namespace Eigen {
 #ifdef ERL_USE_ABSL
     template<typename H>
     H
-    AbslHashValue(H state, const Eigen::Vector2i& v) {
+    AbslHashValue(H state, const Eigen::Vector2i &v) {
         return H::combine(std::move(state), v[0], v[1]);
     }
 
     template<typename H>
     H
-    AbslHashValue(H state, const Eigen::Vector3i& v) {
+    AbslHashValue(H state, const Eigen::Vector3i &v) {
         return H::combine(std::move(state), v[0], v[1], v[2]);
     }
 
     template<typename H>
     H
-    AbslHashValue(H state, const Eigen::Vector4i& v) {
+    AbslHashValue(H state, const Eigen::Vector4i &v) {
         return H::combine(std::move(state), v[0], v[1], v[2], v[3]);
     }
 
     template<typename H, typename T, int Rows, int Cols>
     H
-    AbslHashValue(H h, const Matrix<T, Rows, Cols>& mat) {
+    AbslHashValue(H h, const Matrix<T, Rows, Cols> &mat) {
         auto data = mat.data();
         if (Rows == Dynamic || Cols == Dynamic) {
             for (int i = 0; i < mat.size(); ++i) { h = H::combine(std::move(h), data[i]); }
@@ -116,18 +117,17 @@ namespace erl::common {
 
     template<typename T, int Rows, int Cols>
     Eigen::MatrixX<T>
-    DownsampleEigenMatrix(const Eigen::Matrix<T, Rows, Cols>& mat, int row_stride, int col_stride) {
-        ERL_ASSERTM(
-            row_stride > 0 && col_stride > 0,
-            "DownsampleEigenMatrix: row_stride and col_stride must be positive.");
+    DownsampleEigenMatrix(const Eigen::Matrix<T, Rows, Cols> &mat, int row_stride, int col_stride) {
+        ERL_ASSERT_GT(row_stride, 0);
+        ERL_ASSERT_GT(col_stride, 0);
         if (row_stride == 1 && col_stride == 1) { return mat; }  // no downsampling
 
         Eigen::MatrixX<T> downsampled(
             mat.rows() / row_stride + (mat.rows() % row_stride != 0),
             mat.cols() / col_stride + (mat.cols() % col_stride != 0));
         for (long c = 0; c < downsampled.cols(); ++c) {
-            T* out = downsampled.col(c).data();
-            const T* in = mat.col(c * col_stride).data();
+            T *out = downsampled.col(c).data();
+            const T *in = mat.col(c * col_stride).data();
             for (long r = 0; r < downsampled.rows(); ++r) { out[r] = in[r * row_stride]; }
         }
         return downsampled;
@@ -136,8 +136,8 @@ namespace erl::common {
     template<typename T, int Rows1, int Cols1, int Rows2, int Cols2>
     bool
     SafeEigenMatrixEqual(
-        const Eigen::Matrix<T, Rows1, Cols1>& lhs,
-        const Eigen::Matrix<T, Rows2, Cols2>& rhs) {
+        const Eigen::Matrix<T, Rows1, Cols1> &lhs,
+        const Eigen::Matrix<T, Rows2, Cols2> &rhs) {
         static_assert(Rows1 == Eigen::Dynamic || Rows2 == Eigen::Dynamic || Rows1 == Rows2);
         static_assert(Cols1 == Eigen::Dynamic || Cols2 == Eigen::Dynamic || Cols1 == Cols2);
         if (lhs.rows() != rhs.rows() || lhs.cols() != rhs.cols()) { return false; }
@@ -150,15 +150,15 @@ namespace erl::common {
     template<typename T>
     bool
     SafeEigenMatrixRefEqual(
-        const Eigen::Ref<const Eigen::MatrixX<T>>& lhs,
-        const Eigen::Ref<const Eigen::MatrixX<T>>& rhs) {
+        const Eigen::Ref<const Eigen::MatrixX<T>> &lhs,
+        const Eigen::Ref<const Eigen::MatrixX<T>> &rhs) {
         if (lhs.rows() != rhs.rows() || lhs.cols() != rhs.cols()) { return false; }
         return lhs == rhs;
     }
 
     template<typename T1, typename T2>
     bool
-    SafeEigenMapEqual(const Eigen::Map<T1>& lhs, const Eigen::Map<T2>& rhs) {
+    SafeEigenMapEqual(const Eigen::Map<T1> &lhs, const Eigen::Map<T2> &rhs) {
         if (sizeof(typename T1::Scalar) != sizeof(typename T2::Scalar)) { return false; }
         if (lhs.rows() != rhs.rows() || lhs.cols() != rhs.cols()) { return false; }
         return std::memcmp(lhs.data(), rhs.data(), sizeof(typename T1::Scalar) * lhs.size()) == 0;
@@ -167,8 +167,8 @@ namespace erl::common {
     template<typename T>
     bool
     SafeSparseEigenMatrixEqual(
-        const Eigen::SparseMatrix<T>& lhs,
-        const Eigen::SparseMatrix<T>& rhs) {
+        const Eigen::SparseMatrix<T> &lhs,
+        const Eigen::SparseMatrix<T> &rhs) {
         if (lhs.rows() != rhs.rows() || lhs.cols() != rhs.cols()) { return false; }
         if (lhs.nonZeros() != rhs.nonZeros()) { return false; }
         for (int i = 0; i < lhs.outerSize(); ++i) {
@@ -195,8 +195,8 @@ namespace erl::common {
     template<typename T>
     void
     SaveEigenMatrixToTextFile(
-        const std::string& file_path,
-        const Eigen::Ref<const Eigen::MatrixX<T>>& matrix,
+        const std::string &file_path,
+        const Eigen::Ref<const Eigen::MatrixX<T>> &matrix,
         EigenTextFormat format = EigenTextFormat::kDefaultFmt);
 
     /**
@@ -218,31 +218,31 @@ namespace erl::common {
         int RowMajor = Eigen::ColMajor>
     Eigen::Matrix<T, Rows, Cols, RowMajor>
     LoadEigenMatrixFromTextFile(
-        const std::string& file_path,
+        const std::string &file_path,
         EigenTextFormat format = EigenTextFormat::kDefaultFmt,
         bool transpose = false);
 
     template<typename T = double, int Rows = Eigen::Dynamic, int Cols = Eigen::Dynamic>
     [[nodiscard]] bool
     SaveEigenMapToBinaryStream(
-        std::ostream& s,
-        const Eigen::Map<const Eigen::Matrix<T, Rows, Cols>>& matrix);
+        std::ostream &s,
+        const Eigen::Map<const Eigen::Matrix<T, Rows, Cols>> &matrix);
 
     template<typename T = double, int Rows = Eigen::Dynamic, int Cols = Eigen::Dynamic>
     [[nodiscard]] bool
-    SaveEigenMatrixToBinaryStream(std::ostream& s, const Eigen::Matrix<T, Rows, Cols>& matrix);
+    SaveEigenMatrixToBinaryStream(std::ostream &s, const Eigen::Matrix<T, Rows, Cols> &matrix);
 
     template<typename T = double, int Rows = Eigen::Dynamic, int Cols = Eigen::Dynamic>
     [[nodiscard]] bool
     SaveEigenMatrixToBinaryFile(
-        const std::string& file_path,
-        const Eigen::Matrix<T, Rows, Cols>& matrix);
+        const std::string &file_path,
+        const Eigen::Matrix<T, Rows, Cols> &matrix);
 
     template<typename T, int Rows, int Cols>
     [[nodiscard]] bool
     SaveVectorOfEigenMatricesToBinaryStream(
-        std::ostream& s,
-        const std::vector<Eigen::Matrix<T, Rows, Cols>>& matrices);
+        std::ostream &s,
+        const std::vector<Eigen::Matrix<T, Rows, Cols>> &matrices);
 
     template<
         typename T,
@@ -252,26 +252,26 @@ namespace erl::common {
         int Cols2 = Eigen::Dynamic>
     [[nodiscard]] bool
     SaveEigenMatrixOfEigenMatricesToBinaryStream(
-        std::ostream& s,
-        const Eigen::Matrix<Eigen::Matrix<T, Rows1, Cols1>, Rows2, Cols2>& matrix_of_matrices);
+        std::ostream &s,
+        const Eigen::Matrix<Eigen::Matrix<T, Rows1, Cols1>, Rows2, Cols2> &matrix_of_matrices);
 
     template<typename T = double, int Rows = Eigen::Dynamic, int Cols = Eigen::Dynamic>
     [[nodiscard]] bool
-    LoadEigenMatrixFromBinaryStream(std::istream& s, Eigen::Matrix<T, Rows, Cols>& matrix);
+    LoadEigenMatrixFromBinaryStream(std::istream &s, Eigen::Matrix<T, Rows, Cols> &matrix);
 
     template<typename T = double, int Rows = Eigen::Dynamic, int Cols = Eigen::Dynamic>
     Eigen::Matrix<T, Rows, Cols>
-    LoadEigenMatrixFromBinaryFile(const std::string& file_path);
+    LoadEigenMatrixFromBinaryFile(const std::string &file_path);
 
     template<typename T = double, int Rows = Eigen::Dynamic, int Cols = Eigen::Dynamic>
     [[nodiscard]] bool
-    LoadEigenMapFromBinaryStream(std::istream& s, Eigen::Map<Eigen::Matrix<T, Rows, Cols>> matrix);
+    LoadEigenMapFromBinaryStream(std::istream &s, Eigen::Map<Eigen::Matrix<T, Rows, Cols>> matrix);
 
     template<typename T = double, int Rows, int Cols>
     [[nodiscard]] bool
     LoadVectorOfEigenMatricesFromBinaryStream(
-        std::istream& s,
-        std::vector<Eigen::Matrix<T, Rows, Cols>>& matrices);
+        std::istream &s,
+        std::vector<Eigen::Matrix<T, Rows, Cols>> &matrices);
 
     template<
         typename T,
@@ -281,36 +281,40 @@ namespace erl::common {
         int Cols2 = Eigen::Dynamic>
     [[nodiscard]] bool
     LoadEigenMatrixOfEigenMatricesFromBinaryStream(
-        std::istream& s,
-        Eigen::Matrix<Eigen::Matrix<T, Rows1, Cols1>, Rows2, Cols2>& matrix_of_matrices);
+        std::istream &s,
+        Eigen::Matrix<Eigen::Matrix<T, Rows1, Cols1>, Rows2, Cols2> &matrix_of_matrices);
 
     template<EigenTextFormat Format, typename Matrix>
     std::string
-    EigenToString(const Matrix& matrix);
+    EigenToString(const Matrix &matrix);
 
     template<typename Matrix>
     std::string
-    EigenToDefaultFmtString(const Matrix& matrix);
+    EigenToDefaultFmtString(const Matrix &matrix);
 
     template<typename Matrix>
     std::string
-    EigenToCommaInitFmtString(const Matrix& matrix);
+    EigenToCommaInitFmtString(const Matrix &matrix);
 
     template<typename Matrix>
     std::string
-    EigenToCleanFmtString(const Matrix& matrix);
+    EigenToCleanFmtString(const Matrix &matrix);
 
     template<typename Matrix>
     std::string
-    EigenToOctaveFmtString(const Matrix& matrix);
+    EigenToOctaveFmtString(const Matrix &matrix);
 
     template<typename Matrix>
     std::string
-    EigenToNumPyFmtString(const Matrix& matrix);
+    EigenToNumPyFmtString(const Matrix &matrix);
 
     template<typename Matrix>
     std::string
-    EigenToCsvFmtString(const Matrix& matrix);
+    EigenToCsvFmtString(const Matrix &matrix);
+
+    template<typename IndexType, int Dim>
+    std::enable_if_t<Dim == 2 || Dim == 3, Eigen::Matrix<IndexType, Dim, Eigen::Dynamic>>
+    GetGridNeighborOffsets(bool include_diagonal);
 }  // namespace erl::common
 
 #include "eigen.tpp"

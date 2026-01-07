@@ -1236,6 +1236,15 @@ namespace erl::geometry {
         std::ostream &
         WriteData(std::ostream &s) const override;
 
+    public:
+        std::ostream &
+        Print(std::ostream &os) const override;
+
+    protected:
+        /**
+         * Get the minimum and maximum coordinates of the octree. This is an expensive operation, so
+         * it is only called when necessary.
+         */
         void
         ComputeMinMax();
     };

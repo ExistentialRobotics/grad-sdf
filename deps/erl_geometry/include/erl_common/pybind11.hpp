@@ -35,23 +35,18 @@ namespace py = pybind11;
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
 
-#define ERL_PYBIND_WRAP_NAME_PROPERTY_AS_READONLY(py_cls, cls, name, property) \
-    py_cls.def_property_readonly(name, [](const cls& obj) { return obj.property; })
-#define ERL_PYBIND_WRAP_PROPERTY_AS_READONLY(py_cls, cls, property) \
-    ERL_PYBIND_WRAP_NAME_PROPERTY_AS_READONLY(py_cls, cls, #property, property)
-
 namespace PYBIND11_NAMESPACE {
     template<typename T>
     using SupportedByNumpy = detail::any_of<detail::is_pod_struct<T>, std::is_arithmetic<T>>;
 
     template<typename T, int Dim>
     array_t<T>
-    cast_to_array(const Eigen::MatrixX<Eigen::Vector<T, Dim>>& mat) {
+    cast_to_array(const Eigen::MatrixX<Eigen::Vector<T, Dim>> &mat) {
         static_assert(Dim >= 1, "Dim must be greater than or equal to 1.");
         array_t<T> out({mat.rows(), mat.cols(), static_cast<long>(Dim)});
         for (long i = 0; i < mat.rows(); ++i) {
             for (long j = 0; j < mat.cols(); ++j) {
-                const Eigen::Vector<T, Dim>& vec = mat(i, j);
+                const Eigen::Vector<T, Dim> &vec = mat(i, j);
                 for (int k = 0; k < Dim; ++k) { out.mutable_at(i, j, k) = vec[k]; }
             }
         }
@@ -60,30 +55,30 @@ namespace PYBIND11_NAMESPACE {
 
     template<typename T>
     class RawPtrWrapper {
-        T* m_ptr_ = nullptr;
+        T *m_ptr_ = nullptr;
 
     public:
         RawPtrWrapper() = default;
 
-        explicit RawPtrWrapper(T* ptr)
+        explicit RawPtrWrapper(T *ptr)
             : m_ptr_(ptr) {}
 
-        T&
+        T &
         operator*() const {
             return *m_ptr_;
         }
 
-        T*
+        T *
         operator->() const {
             return m_ptr_;
         }
 
-        T&
+        T &
         operator[](std::size_t i) const {
             return m_ptr_[i];
         }
 
-        T*
+        T *
         get() const {
             return m_ptr_;
         }
@@ -92,10 +87,10 @@ namespace PYBIND11_NAMESPACE {
     namespace detail {
         template<typename Iterator>
         struct iterator_self_access {
-            using result_type = Iterator&;
+            using result_type = Iterator &;
 
             result_type
-            operator()(Iterator& it) const {
+            operator()(Iterator &it) const {
                 return it;
             }
         };
@@ -109,7 +104,7 @@ namespace PYBIND11_NAMESPACE {
         typename ValueType = typename detail::iterator_self_access<Iterator>::result_type,
         typename... Extra>
     typing::Iterator<ValueType>
-    wrap_iterator(Iterator first, Sentinel last, Extra&&... extra) {
+    wrap_iterator(Iterator first, Sentinel last, Extra &&...extra) {
         return detail::make_iterator_impl<
             detail::iterator_self_access<Iterator>,
             Policy,
@@ -129,7 +124,7 @@ namespace PYBIND11_NAMESPACE {
         typename ValueType = typename detail::iterator_self_access<Iterator>::result_type,
         typename... Extra>
     auto
-    wrap_iterator(Iterator /* first */, Sentinel /* last */, Extra&&... /* extra */) {
+    wrap_iterator(Iterator /* first */, Sentinel /* last */, Extra &&.../* extra */) {
         py::print("pybind11 version is too old, please update to 2.12 or later.");
         return py::none();
     }

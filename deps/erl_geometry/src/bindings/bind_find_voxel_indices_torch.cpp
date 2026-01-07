@@ -43,5 +43,7 @@ Args:
 
 Returns:
     torch.Tensor: Tensor to store the found voxel indices, has the same shape as codes and the same dtype as children.)pbdoc");
+#else
+    (void) m;
 #endif
 }

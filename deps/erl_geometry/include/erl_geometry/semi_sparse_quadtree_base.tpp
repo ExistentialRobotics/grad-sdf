@@ -8,8 +8,7 @@ namespace erl::geometry {
     template<typename Dtype, class Node, class Setting>
     SemiSparseQuadtreeBase<Dtype, Node, Setting>::SemiSparseQuadtreeBase(
         const std::shared_ptr<Setting> &setting)
-        : Super(setting),
-          m_setting_(setting) {
+        : Super(setting), m_setting_(setting) {
 
         m_parents_.resize(m_setting_->init_voxel_num);
         m_children_.resize(Eigen::NoChange, m_setting_->init_voxel_num);
@@ -141,7 +140,7 @@ namespace erl::geometry {
         int child_level = tree_depth - 1;
         const uint64_t code = key.ToMortonCode();
         uint64_t shift = child_level << 1;
-        uint64_t mask = 0b11 << shift;
+        uint64_t mask = 0b11ul << shift;
         while (child_level >= min_level) {
             if (const auto child_index = static_cast<int>((code & mask) >> shift);
                 node->HasChild(child_index)) {
@@ -233,7 +232,7 @@ namespace erl::geometry {
             }
             m_parents_[m_buf_head_] = parent_node_index;
             m_children_.col(m_buf_head_).setConstant(-1);
-            m_voxels_.col(m_buf_head_) << key[0], key[1], (1 << level);
+            m_voxels_.col(m_buf_head_) << key[0], key[1], (1ul << level);
             m_vertices_.col(m_buf_head_).setConstant(-1);
             if (m_setting_->cache_voxel_centers) {
                 const auto r = static_cast<Dtype>(m_setting_->resolution);
@@ -259,7 +258,7 @@ namespace erl::geometry {
         const NodeIndex node_index = *it;
         m_recycled_node_indices_.erase(it);
         m_parents_[node_index] = parent_node_index;
-        m_voxels_.col(node_index) << key[0], key[1], (1 << level);
+        m_voxels_.col(node_index) << key[0], key[1], (1ul << level);
         if (m_setting_->cache_voxel_centers) {
             const auto r = static_cast<Dtype>(m_setting_->resolution);
             const auto key_offset = this->m_tree_key_offset_;
@@ -275,10 +274,10 @@ namespace erl::geometry {
         }
 
         // already reset in OnDeleteNodeChild
-        // m_children_[node_index] = {-1, -1, -1, -1};
+        // m_children_.col(node_index).setConstant(-1);
 
         // will be set in RecordVertices
-        // m_vertices_[node_index] = {-1, -1, -1, -1};
+        // m_vertices_.col(node_index).setConstant(-1);
 
         if (parent_node_index >= 0) { m_children_(child_index, parent_node_index) = node_index; }
 
@@ -353,7 +352,7 @@ namespace erl::geometry {
 
         this->ExpandNode(node);
         const QuadtreeKey::KeyType child_level = m_setting_->tree_depth - depth - 1;
-        const QuadtreeKey::KeyType offset = (1 << child_level) >> 1;
+        const QuadtreeKey::KeyType offset = (1ul << child_level) >> 1;
         const NodeIndex parent_node_idx = node->GetNodeIndex();
         for (int i = 0; i < 4; ++i) {
             QuadtreeKey child_key;

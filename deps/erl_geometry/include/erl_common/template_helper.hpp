@@ -3,31 +3,42 @@
 #include "logging.hpp"
 #include "string_utils.hpp"
 
+#include <algorithm>
 #include <memory>
+#include <type_traits>
 
-/// Check if T is an instantiation of the template `Class`. For example,
-/// `is_instantiation<shared_ptr, T>` is true if `T == shared_ptr<U>` where U can be anything.
-template<template<typename...> class Class, typename T>
-struct is_instantiation : std::false_type {};
-
-template<template<typename...> class Class, typename... Us>
-struct is_instantiation<Class, Class<Us...>> : std::true_type {};
-
-/// Check if T is std::shared_ptr<U> where U can be anything
 template<typename T>
-using IsSharedPtr = is_instantiation<std::shared_ptr, T>;
+struct is_shared_ptr : std::false_type {};
 
-/// Check if T is std::unique_ptr<U> where U can be anything
 template<typename T>
-using IsUniquePtr = is_instantiation<std::unique_ptr, T>;
+struct is_shared_ptr<std::shared_ptr<T>> : std::true_type {};
 
-/// Check if T is std::weak_ptr<U> where U can be anything
 template<typename T>
-using IsWeakPtr = is_instantiation<std::weak_ptr, T>;
+inline constexpr bool is_shared_ptr_v = is_shared_ptr<T>::value;
 
-/// Check if T is smart pointer (std::shared_ptr, std::unique_ptr)
 template<typename T>
-using IsSmartPtr = std::disjunction<IsSharedPtr<T>, IsUniquePtr<T>>;
+struct is_unique_ptr : std::false_type {};
+
+template<typename T>
+struct is_unique_ptr<std::unique_ptr<T>> : std::true_type {};
+
+template<typename T>
+inline constexpr bool is_unique_ptr_v = is_unique_ptr<T>::value;
+
+template<typename T>
+struct is_weak_ptr : std::false_type {};
+
+template<typename T>
+struct is_weak_ptr<std::weak_ptr<T>> : std::true_type {};
+
+template<typename T>
+inline constexpr bool is_weak_ptr_v = is_weak_ptr<T>::value;
+
+template<typename T>
+struct is_smart_ptr : std::disjunction<is_shared_ptr<T>, is_unique_ptr<T>> {};
+
+template<typename T>
+inline constexpr bool is_smart_ptr_v = is_smart_ptr<T>::value;
 
 /// assert if the pointer is null
 template<typename T, typename... Args>
@@ -39,6 +50,12 @@ NotNull(T ptr, const bool fatal, const std::string &msg, Args &&...args) {
     }
     return ptr;
 }
+
+#ifndef NDEBUG
+    #define CHECKED_AT(t, index) t.at(index)
+#else
+    #define CHECKED_AT(t, index) t[index]  // NOLINT(*-pro-bounds-constant-array-index)
+#endif
 
 template<typename T>
 bool
@@ -65,14 +82,11 @@ struct Zip {
     using type = std::pair<const T1 &, const T2 &>;
 
     Zip(const std::vector<T1> &v1, const std::vector<T2> &v2)
-        : m_v1_(v1.data()),
-          m_v2_(v2.data()),
-          m_size_(std::min(v1.size(), v2.size())) {}
+        : m_v1_(v1.data()), m_v2_(v2.data()), m_size_(std::min(v1.size(), v2.size())) {}
 
     struct Iterator {
         explicit Iterator(const Zip *zip, const std::size_t index = 0)
-            : m_zip_(zip),
-              m_index_(index) {}
+            : m_zip_(zip), m_index_(index) {}
 
         T1 &
         first() {
@@ -97,7 +111,7 @@ struct Zip {
         const Iterator &
         operator++() {  // prefix increment, i.e. ++it
             ++m_index_;
-            if (m_index_ >= m_zip_->m_size_) { m_index_ = m_zip_->m_size_; }
+            m_index_ = std::min(m_index_, m_zip_->m_size_);
             return *this;
         }
 

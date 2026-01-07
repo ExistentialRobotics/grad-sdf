@@ -73,7 +73,7 @@ namespace erl::geometry {
             const auto y = static_cast<float>(it.GetY());
 
             area << x - half_size, x + half_size, y - half_size, y + half_size;
-            Eigen::Matrix2i area_px = GetPixelCoordsForPositions(area, true);
+            Eigen::Matrix2i area_px = GetPixelCoordsForPositions<float>(area, true);
 
             cv::rectangle(
                 mat,
@@ -114,7 +114,7 @@ namespace erl::geometry {
             const auto y = static_cast<float>(it.GetY());
 
             area << x - half_size, x + half_size, y - half_size, y + half_size;
-            Eigen::Matrix2i area_px = GetPixelCoordsForPositions(area, true);
+            Eigen::Matrix2i area_px = GetPixelCoordsForPositions<float>(area, true);
 
             cv::rectangle(
                 mat,

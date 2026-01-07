@@ -1,5 +1,6 @@
 #pragma once
 
+#include "logging_level.hpp"
 #include "progress_bar.hpp"
 
 #include <ctime>
@@ -9,46 +10,35 @@
 
 namespace erl::common {
     class LoggingNoFmt {
-
-    public:
-        enum Level {
-            kInfo,
-            kDebug,
-            kWarn,
-            kError,
-            kSilent,
-        };
-
-    private:
-        static Level s_level_;
+        static LoggingLevel s_level_;
         static std::mutex g_print_mutex;
 
         // ANSI color codes for terminal output
-        static constexpr const char* COLOR_RESET = "\033[0m";
-        static constexpr const char* COLOR_BLUE = "\033[1;36m";      // Deep sky blue + bold
-        static constexpr const char* COLOR_ORANGE = "\033[1;33m";    // Orange + bold
-        static constexpr const char* COLOR_RED = "\033[1;31m";       // Red + bold
-        static constexpr const char* COLOR_DARK_RED = "\033[1;91m";  // Dark red + bold
-        static constexpr const char* COLOR_GREEN = "\033[1;92m";     // Spring green + bold
+        static constexpr auto *COLOR_RESET = "\033[0m";
+        static constexpr auto *COLOR_BLUE = "\033[1;36m";      // Deep sky blue + bold
+        static constexpr auto *COLOR_ORANGE = "\033[1;33m";    // Orange + bold
+        static constexpr auto *COLOR_RED = "\033[1;31m";       // Red + bold
+        static constexpr auto *COLOR_DARK_RED = "\033[1;91m";  // Dark red + bold
+        static constexpr auto COLOR_GREEN = "\033[1;92m";      // Spring green + bold
 
         template<typename T>
         static void
-        AppendToStream(std::ostringstream& oss, T&& value) {
+        AppendToStream(std::ostringstream &oss, T &&value) {
             oss << std::forward<T>(value);
         }
 
         template<typename T, typename... Args>
         static void
-        AppendToStream(std::ostringstream& oss, T&& first, Args&&... args) {
+        AppendToStream(std::ostringstream &oss, T &&first, Args &&...args) {
             oss << std::forward<T>(first);
             AppendToStream(oss, std::forward<Args>(args)...);
         }
 
     public:
         static void
-        SetLevel(Level level);
+        SetLevel(LoggingLevel level);
 
-        static Level
+        static LoggingLevel
         GetLevel();
 
         static std::string
@@ -65,7 +55,7 @@ namespace erl::common {
 
         template<typename... Args>
         static void
-        Info(Args&&... args) {
+        Info(Args &&...args) {
             if (s_level_ > kInfo) { return; }
             std::lock_guard lock(g_print_mutex);
             time_t now = std::time(nullptr);
@@ -84,7 +74,7 @@ namespace erl::common {
 
         template<typename... Args>
         static void
-        Debug(Args&&... args) {
+        Debug(Args &&...args) {
             if (s_level_ > kDebug) { return; }
             std::lock_guard lock(g_print_mutex);
             time_t now = std::time(nullptr);
@@ -103,7 +93,7 @@ namespace erl::common {
 
         template<typename... Args>
         static void
-        Warn(Args&&... args) {
+        Warn(Args &&...args) {
             if (s_level_ > kWarn) { return; }
             std::lock_guard lock(g_print_mutex);
             time_t now = std::time(nullptr);
@@ -128,7 +118,7 @@ namespace erl::common {
          */
         template<typename... Args>
         static void
-        Error(Args&&... args) {
+        Error(Args &&...args) {
             if (s_level_ > kError) { return; }
             std::lock_guard lock(g_print_mutex);
             time_t now = std::time(nullptr);
@@ -152,7 +142,7 @@ namespace erl::common {
          */
         template<typename... Args>
         static void
-        Fatal(Args&&... args) {
+        Fatal(Args &&...args) {
             std::lock_guard lock(g_print_mutex);
             time_t now = std::time(nullptr);
             auto time = std::localtime(&now);
@@ -175,7 +165,7 @@ namespace erl::common {
          */
         template<typename... Args>
         static void
-        Success(Args&&... args) {
+        Success(Args &&...args) {
             std::lock_guard lock(g_print_mutex);
             time_t now = std::time(nullptr);
             auto time = std::localtime(&now);
@@ -199,7 +189,7 @@ namespace erl::common {
          */
         template<typename... Args>
         static std::string
-        Failure(Args&&... args) {
+        Failure(Args &&...args) {
             std::lock_guard lock(g_print_mutex);
             time_t now = std::time(nullptr);
             auto time = std::localtime(&now);
@@ -220,7 +210,7 @@ namespace erl::common {
         }
 
         static void
-        Write(const std::string& msg) {
+        Write(const std::string &msg) {
             std::lock_guard lock(g_print_mutex);
             ProgressBar::Write(msg);
         }
@@ -239,7 +229,7 @@ namespace erl::common {
 namespace erl::common::detail {
     template<typename... Args>
     inline std::string
-    FormatArgs(Args&&... args) {
+    FormatArgs(Args &&...args) {
         std::ostringstream oss;
         (oss << ... << args);
         return oss.str();
@@ -274,7 +264,7 @@ namespace erl::common::detail {
 namespace erl::common::detail {
     template<typename... Args>
     inline std::string
-    FormatArgs(Args&&... args) {
+    FormatArgs(Args &&...args) {
         std::ostringstream oss;
         (oss << ... << args);
         return oss.str();
@@ -325,7 +315,7 @@ namespace erl::common::detail {
 namespace erl::common::detail {
     template<typename... Args>
     std::string
-    FormatArgs(Args&&... args) {
+    FormatArgs(Args &&...args) {
         std::ostringstream oss;
         (oss << ... << args);
         return oss.str();
@@ -387,19 +377,19 @@ namespace erl::common::detail {
                 erl::common::detail::FormatArgs(__VA_ARGS__)); \
         } while (false)
 
+    #define ERL_NO_FMT_DEBUG(...)                              \
+        do {                                                   \
+            erl::common::LoggingNoFmt::Debug(                  \
+                __FILE__,                                      \
+                ":",                                           \
+                __LINE__,                                      \
+                ": ",                                          \
+                erl::common::detail::FormatArgs(__VA_ARGS__)); \
+        } while (false)
+
     #ifndef NDEBUG
-        #define ERL_NO_FMT_DEBUG(...)                              \
-            do {                                                   \
-                erl::common::LoggingNoFmt::Debug(                  \
-                    __FILE__,                                      \
-                    ":",                                           \
-                    __LINE__,                                      \
-                    ": ",                                          \
-                    erl::common::detail::FormatArgs(__VA_ARGS__)); \
-            } while (false)
         #define ERL_NO_FMT_DEBUG_ASSERT(expr, ...) ERL_NO_FMT_ASSERTM(expr, __VA_ARGS__)
     #else
-        #define ERL_NO_FMT_DEBUG(...)              ((void) 0)
         #define ERL_NO_FMT_DEBUG_ASSERT(expr, ...) (void) 0
     #endif
 #endif

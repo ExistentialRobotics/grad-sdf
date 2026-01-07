@@ -47,30 +47,30 @@
 namespace erl::geometry {
 
     const std::array<MarchingSquares::Edge, 5> MarchingSquares::kBaseEdgeTable = {
-        0, 0, 0, 1,  // edge 0
-        0, 0, 1, 0,  // edge 1
-        1, 0, 1, 1,  // edge 2
-        0, 1, 1, 1,  // edge 3
-        4, 4, 4, 4   // None
+        MarchingSquares::Edge{0, 0, 0, 1},  // edge 0
+        MarchingSquares::Edge{0, 0, 1, 0},  // edge 1
+        MarchingSquares::Edge{1, 0, 1, 1},  // edge 2
+        MarchingSquares::Edge{0, 1, 1, 1},  // edge 3
+        MarchingSquares::Edge{4, 4, 4, 4},  // None
     };
 
     const std::array<std::array<MarchingSquares::Edge, 4>, 16> MarchingSquares::kEdgePairTable = {
-        kBaseEdgeTable[4], kBaseEdgeTable[4], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
-        kBaseEdgeTable[0], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
-        kBaseEdgeTable[2], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
-        kBaseEdgeTable[0], kBaseEdgeTable[2], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
-        kBaseEdgeTable[1], kBaseEdgeTable[2], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
-        kBaseEdgeTable[0], kBaseEdgeTable[3], kBaseEdgeTable[1], kBaseEdgeTable[2],  // and 1, 2
-        kBaseEdgeTable[1], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
-        kBaseEdgeTable[0], kBaseEdgeTable[1], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
-        kBaseEdgeTable[0], kBaseEdgeTable[1], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
-        kBaseEdgeTable[1], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
-        kBaseEdgeTable[0], kBaseEdgeTable[1], kBaseEdgeTable[2], kBaseEdgeTable[3],  // and 2, 3
-        kBaseEdgeTable[1], kBaseEdgeTable[2], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
-        kBaseEdgeTable[0], kBaseEdgeTable[2], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
-        kBaseEdgeTable[2], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
-        kBaseEdgeTable[0], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
-        kBaseEdgeTable[4], kBaseEdgeTable[4], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
+        std::array{kBaseEdgeTable[4], kBaseEdgeTable[4], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
+        std::array{kBaseEdgeTable[0], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
+        std::array{kBaseEdgeTable[2], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
+        std::array{kBaseEdgeTable[0], kBaseEdgeTable[2], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
+        std::array{kBaseEdgeTable[1], kBaseEdgeTable[2], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
+        std::array{kBaseEdgeTable[0], kBaseEdgeTable[3], kBaseEdgeTable[1], kBaseEdgeTable[2]},  //
+        std::array{kBaseEdgeTable[1], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
+        std::array{kBaseEdgeTable[0], kBaseEdgeTable[1], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
+        std::array{kBaseEdgeTable[0], kBaseEdgeTable[1], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
+        std::array{kBaseEdgeTable[1], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
+        std::array{kBaseEdgeTable[0], kBaseEdgeTable[1], kBaseEdgeTable[2], kBaseEdgeTable[3]},  //
+        std::array{kBaseEdgeTable[1], kBaseEdgeTable[2], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
+        std::array{kBaseEdgeTable[0], kBaseEdgeTable[2], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
+        std::array{kBaseEdgeTable[2], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
+        std::array{kBaseEdgeTable[0], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
+        std::array{kBaseEdgeTable[4], kBaseEdgeTable[4], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
     };  // 16 x 4 Edge, 16 x 16 long
 
     const int MarchingSquares::kUniqueEdgeIndexTable[16][5] = {
@@ -133,14 +133,14 @@ namespace erl::geometry {
     };
 
     template<typename Dtype>
-    int
-    CalculateVertexConfigIndexImpl(const Dtype *vertex_values, Dtype iso_value) {
+    static int
+    CalculateVertexConfigIndexImpl2D(const Dtype *vertex_values, Dtype iso_value) {
         return (vertex_values[0] <= iso_value ? 1 : 0) | (vertex_values[1] <= iso_value ? 2 : 0) |
                (vertex_values[2] <= iso_value ? 4 : 0) | (vertex_values[3] <= iso_value ? 8 : 0);
     }
 
     template<typename Dtype>
-    void
+    static void
     MarchingSingleSquareImpl(
         const Eigen::Ref<const Eigen::Matrix<Dtype, 2, 4>> &vertex_coords,
         const Eigen::Ref<const Eigen::Vector<Dtype, 4>> &values,
@@ -151,7 +151,7 @@ namespace erl::geometry {
         vertices.clear();
         lines.clear();
 
-        const int config = CalculateVertexConfigIndexImpl<Dtype>(values.data(), iso_value);
+        const int config = CalculateVertexConfigIndexImpl2D<Dtype>(values.data(), iso_value);
         if (config <= 0 || config >= 15) { return; }
 
         auto interpolate = [&](const MarchingSquares::Edge &e) -> Eigen::Vector2<Dtype> {
@@ -181,8 +181,11 @@ namespace erl::geometry {
         }
     }
 
-    static void
-    SortLinesToObjects(Eigen::Matrix2Xi &lines_to_vertices, Eigen::Matrix2Xi &objects_to_lines) {
+    void
+    MarchingSquares::SortLinesToObjects(
+        Eigen::Matrix2Xi &lines_to_vertices,
+        Eigen::Matrix2Xi &objects_to_lines) {
+
         const long num_lines = lines_to_vertices.cols();
         // estimated maximum number of objects
         objects_to_lines.setConstant(2, num_lines + 1, -1);
@@ -277,7 +280,7 @@ namespace erl::geometry {
     }
 
     template<typename Dtype>
-    void
+    static void
     MarchingSquareImpl(
         const Eigen::Ref<const Eigen::MatrixX<Dtype>> &img,
         const Dtype iso_value,
@@ -360,19 +363,19 @@ namespace erl::geometry {
         }
 
         // 4. find objects
-        SortLinesToObjects(lines_to_vertices, objects_to_lines);
+        MarchingSquares::SortLinesToObjects(lines_to_vertices, objects_to_lines);
     }
 
     int
     MarchingSquares::CalculateVertexConfigIndex(
         const double *vertex_values,
         const double iso_value) {
-        return CalculateVertexConfigIndexImpl<double>(vertex_values, iso_value);
+        return CalculateVertexConfigIndexImpl2D<double>(vertex_values, iso_value);
     }
 
     int
     MarchingSquares::CalculateVertexConfigIndex(const float *vertex_values, const float iso_value) {
-        return CalculateVertexConfigIndexImpl<float>(vertex_values, iso_value);
+        return CalculateVertexConfigIndexImpl2D<float>(vertex_values, iso_value);
     }
 
     void

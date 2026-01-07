@@ -1,12 +1,12 @@
 #pragma once
 
-#ifdef ERL_USE_OPENCV
-    #include "pybind11_semi_sparse_quadtree_drawer.hpp"
-#endif
-
 #include "pybind11_quadtree_impl.hpp"
 #include "semi_sparse_nd_tree_setting.hpp"
 #include "semi_sparse_quadtree_base.hpp"
+
+#ifdef ERL_USE_OPENCV
+    #include "pybind11_semi_sparse_quadtree_drawer.hpp"
+#endif
 
 #ifdef ERL_USE_LIBTORCH
     #include <torch/extension.h>

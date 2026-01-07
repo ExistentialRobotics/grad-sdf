@@ -21,7 +21,7 @@ namespace erl::geometry {
 
         const MortonType code = codes[i];
         uint64_t shift = level * Dim;
-        uint64_t mask = ((1 << Dim) - 1) << shift;
+        uint64_t mask = ((1ul << Dim) - 1ul) << shift;
         IndexType &index = indices[i];
 
         index = 0;
@@ -33,8 +33,8 @@ namespace erl::geometry {
             // Branchless update: if child_val >= 0, update index; else, keep index unchanged.
             // Use a mask to zero out further updates if invalid.
 
-            int valid = (child_val >= 0);
-            int invalid = 1 - valid;
+            const int valid = (child_val >= 0);
+            const int invalid = 1 - valid;
 
             index = valid * child_val + invalid * index;
             shift = valid * (shift - Dim) + invalid * shift;

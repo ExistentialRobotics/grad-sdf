@@ -920,8 +920,8 @@ namespace erl::geometry {
     }
 
     template<typename Dtype>
-    int
-    CalculateVertexConfigIndexImpl(const Dtype *vertex_values, Dtype iso_value) {
+    static int
+    CalculateVertexConfigIndexImpl3D(const Dtype *vertex_values, Dtype iso_value) {
         // binary coding of vertex_values
         return (vertex_values[0] < iso_value ? (1 << 0) : 0) |  //
                (vertex_values[1] < iso_value ? (1 << 1) : 0) |  //
@@ -934,7 +934,7 @@ namespace erl::geometry {
     }
 
     template<typename Dtype>
-    void
+    static void
     InterpolateEdgeVertex(
         const Dtype *v1,
         const Dtype *v2,
@@ -961,7 +961,7 @@ namespace erl::geometry {
     }
 
     template<typename Dtype>
-    void
+    static void
     MarchingSingleCubeImpl(
         const Eigen::Ref<const Eigen::Matrix<Dtype, 3, 8>> &vertex_coords,
         const Eigen::Ref<const Eigen::Vector<Dtype, 8>> &values,
@@ -974,7 +974,7 @@ namespace erl::geometry {
         face_normals.clear();
         triangles.clear();
 
-        const int cfg_index = CalculateVertexConfigIndexImpl<Dtype>(values.data(), iso_value);
+        const int cfg_index = CalculateVertexConfigIndexImpl3D<Dtype>(values.data(), iso_value);
         if (cfg_index == 0 || cfg_index == 255) { return; }  // no triangle
 
         // interpolate the edge vertices
@@ -1017,7 +1017,7 @@ namespace erl::geometry {
     }
 
     template<typename Dtype>
-    std::vector<std::vector<MarchingCubes::ValidCube>>
+    static std::vector<std::vector<MarchingCubes::ValidCube>>
     CollectValidCubesImpl(
         const Eigen::Vector3i &grid_shape,
         const Eigen::Ref<const Eigen::VectorX<Dtype>> &values,
@@ -1050,7 +1050,8 @@ namespace erl::geometry {
                         vertex_gid = vertex_index.dot(grid_strides);
                         vertex_values[l] = values[vertex_gid];
                     }
-                    int cfg_index = CalculateVertexConfigIndexImpl<Dtype>(vertex_values, iso_value);
+                    int cfg_index =
+                        CalculateVertexConfigIndexImpl3D<Dtype>(vertex_values, iso_value);
                     if (cfg_index == 0 || cfg_index == 255) { continue; }
                     MC::ValidCube valid_cube{{i, j, k}, cfg_index, {}};
                     valid_cube.edges.reserve(12);
@@ -1078,7 +1079,7 @@ namespace erl::geometry {
     }
 
     template<typename Dtype>
-    std::vector<std::vector<MarchingCubes::ValidCube>>
+    static std::vector<std::vector<MarchingCubes::ValidCube>>
     CollectValidCubesWithMaskImpl(
         const Eigen::Vector3i &grid_shape,
         const Eigen::Ref<const Eigen::VectorX<Dtype>> &grid_values,
@@ -1118,7 +1119,8 @@ namespace erl::geometry {
                         vertex_values[l] = grid_values[vertex_gid];
                     }
                     if (ignore) { continue; }
-                    int cfg_index = CalculateVertexConfigIndexImpl<Dtype>(vertex_values, iso_value);
+                    int cfg_index =
+                        CalculateVertexConfigIndexImpl3D<Dtype>(vertex_values, iso_value);
                     if (cfg_index == 0 || cfg_index == 255) { continue; }
                     MC::ValidCube valid_cube{{i, j, k}, cfg_index, {}};
                     valid_cube.edges.reserve(12);
@@ -1146,7 +1148,7 @@ namespace erl::geometry {
     }
 
     template<typename Dtype>
-    void
+    static void
     ProcessValidCubesImpl(
         const std::vector<std::vector<MarchingCubes::ValidCube>> &valid_cubes,
         const Eigen::Ref<const Eigen::Vector3<Dtype>> &coords_min,
@@ -1254,12 +1256,12 @@ namespace erl::geometry {
 
     int
     MarchingCubes::CalculateVertexConfigIndex(const double *vertex_values, double iso_value) {
-        return CalculateVertexConfigIndexImpl<double>(vertex_values, iso_value);
+        return CalculateVertexConfigIndexImpl3D<double>(vertex_values, iso_value);
     }
 
     int
     MarchingCubes::CalculateVertexConfigIndex(const float *vertex_values, float iso_value) {
-        return CalculateVertexConfigIndexImpl<float>(vertex_values, iso_value);
+        return CalculateVertexConfigIndexImpl3D<float>(vertex_values, iso_value);
     }
 
     void

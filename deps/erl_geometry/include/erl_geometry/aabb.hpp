@@ -6,12 +6,10 @@
 
 namespace erl::geometry {
 
-    struct AabbBase {};
+    template<typename Dtype, int Dim>
+    struct Aabb : Eigen::AlignedBox<Dtype, Dim> {
 
-    template<typename ScalarType, int Dim>
-    struct Aabb : Eigen::AlignedBox<ScalarType, Dim>, AabbBase {
-
-        using Scalar = ScalarType;
+        using Scalar = Dtype;
         using Point = Eigen::Vector<Scalar, Dim>;
 
         Point center = {};
@@ -64,10 +62,10 @@ namespace erl::geometry {
             return {this->m_min.cwiseMax(rhs.m_min), this->m_max.cwiseMin(rhs.m_max)};
         }
 
-        template<typename Dtype>
-        Aabb<Dtype, Dim>
+        template<typename Dtype2>
+        Aabb<Dtype2, Dim>
         Cast() const {
-            return {this->m_min.template cast<Dtype>(), this->m_max.template cast<Dtype>()};
+            return {this->m_min.template cast<Dtype2>(), this->m_max.template cast<Dtype2>()};
         }
     };
 
@@ -77,39 +75,99 @@ namespace erl::geometry {
     using Aabb3Df = Aabb<float, 3>;
 }  // namespace erl::geometry
 
-namespace YAML {
-    template<typename AABB>
-    struct ConvertAabb {
-        static_assert(
-            std::is_base_of_v<erl::geometry::AabbBase, AABB>,
-            "AABB must be derived from AabbBase");
+template<typename Dtype, int Dim>
+struct YAML::convert<erl::geometry::Aabb<Dtype, Dim>> {
+    static Node
+    encode(const erl::geometry::Aabb<Dtype, Dim> &aabb) {
+        Node node;
+        node["center"] = aabb.center;
+        node["half_sizes"] = aabb.half_sizes;
+        return node;
+    }
 
-        static Node
-        encode(const AABB &aabb) {
-            Node node;
-            ERL_YAML_SAVE_ATTR(node, aabb, center);
-            ERL_YAML_SAVE_ATTR(node, aabb, half_sizes);
-            return node;
+    static bool
+    decode(const Node &node, erl::geometry::Aabb<Dtype, Dim> &aabb) {
+        if (!node.IsMap()) { return false; }
+        using Point = typename erl::geometry::Aabb<Dtype, Dim>::Point;
+        aabb.center = node["center"].as<Point>();
+        aabb.half_sizes = node["half_sizes"].as<Point>();
+        aabb = erl::geometry::Aabb<Dtype, Dim>(aabb.center, aabb.half_sizes);
+        return true;
+    }
+};
+
+#ifdef ERL_USE_BOOST
+template<typename Dtype, int Dim>
+struct erl::common::program_options::ParseOption<erl::geometry::Aabb<Dtype, Dim>>
+    : ParseOptionBase {
+
+    using T = erl::geometry::Aabb<Dtype, Dim>;
+
+    ParseOption<typename T::Point> center_parser;
+    ParseOption<typename T::Point> half_sizes_parser;
+
+    ParseOption(std::string option_name_in, ProgramOptionsData *po_data_in, T *member_ptr_in)
+        : ParseOptionBase(std::move(option_name_in), po_data_in, member_ptr_in),
+          center_parser(GetBoostOptionName(option_name, "center"), po_data, &member_ptr_in->center),
+          half_sizes_parser(
+              GetBoostOptionName(option_name, "half_sizes"),
+              po_data,
+              &member_ptr_in->half_sizes) {}
+
+    void
+    Run() override {
+
+        center_parser.Run();
+        half_sizes_parser.Run();
+
+        T &member = *static_cast<T *>(member_ptr);
+
+        for (int i = 0; i < Dim; ++i) {
+            ERL_ASSERTM(
+                member.half_sizes[i] > 0,
+                "Half size must be non-negative for {}.half_sizes[{}], got {}",
+                option_name,
+                i,
+                member.half_sizes[i]);
         }
 
-        static bool
-        decode(const Node &node, AABB &aabb) {
-            if (!node.IsMap()) { return false; }
-            ERL_YAML_LOAD_ATTR(node, aabb, center);
-            ERL_YAML_LOAD_ATTR(node, aabb, half_sizes);
-            return true;
-        }
-    };
+        member = erl::geometry::Aabb<Dtype, Dim>(member.center, member.half_sizes);
+    }
+};
+#endif
 
-    template<>
-    struct convert<erl::geometry::Aabb2Dd> : ConvertAabb<erl::geometry::Aabb2Dd> {};
+#ifdef ERL_ROS_VERSION_1
+template<typename Dtype, int Dim>
+struct erl::common::ros_params::LoadRos1Param<erl::geometry::Aabb<Dtype, Dim>> {
+    using Aabb = erl::geometry::Aabb<Dtype, Dim>;
 
-    template<>
-    struct convert<erl::geometry::Aabb3Dd> : ConvertAabb<erl::geometry::Aabb3Dd> {};
+    static void
+    Run(ros::NodeHandle &nh, const std::string &param_name, Aabb &member) {
+        using Point = typename Aabb::Point;
+        LoadRos1Param<Point>::Run(nh, GetRos1ParamPath(param_name, "center"), member.center);
+        LoadRos1Param<Point>::Run(
+            nh,
+            GetRos1ParamPath(param_name, "half_sizes"),
+            member.half_sizes);
+        member = Aabb(member.center, member.half_sizes);
+    }
+};
+#endif
 
-    template<>
-    struct convert<erl::geometry::Aabb2Df> : ConvertAabb<erl::geometry::Aabb2Df> {};
+#ifdef ERL_ROS_VERSION_2
+template<typename Dtype, int Dim>
+struct erl::common::ros_params::LoadRos2Param<erl::geometry::Aabb<Dtype, Dim>> {
+    using Aabb = erl::geometry::Aabb<Dtype, Dim>;
 
-    template<>
-    struct convert<erl::geometry::Aabb3Df> : ConvertAabb<erl::geometry::Aabb3Df> {};
-}  // namespace YAML
+    static void
+    Run(rclcpp::Node *node, const std::string &param_name, Aabb &member) {
+        using Point = typename Aabb::Point;
+        LoadRos2Param<Point>::Run(node, GetRos2ParamPath(param_name, "center"), member.center);
+        LoadRos2Param<Point>::Run(
+            node,
+            GetRos2ParamPath(param_name, "half_sizes"),
+            member.half_sizes);
+        member = Aabb(member.center, member.half_sizes);
+    }
+};
+#endif

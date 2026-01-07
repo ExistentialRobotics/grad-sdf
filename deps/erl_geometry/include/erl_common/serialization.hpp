@@ -4,10 +4,11 @@
 #include "string_utils.hpp"
 
 #include <filesystem>
+#include <functional>
 #include <istream>
 #include <vector>
 
-namespace erl::common {
+namespace erl::common::serialization {
     /**
      * Read a line until a delimiter is found.
      * @param stream The input stream to skip the line from.
@@ -96,6 +97,40 @@ namespace erl::common {
         ERL_WARN("Failed to read {}. Truncated file?", typeid(*obj).name());
         return false;  // should not reach here
     }
+
+    template<typename T, typename = void>
+    struct Writer {
+        static bool
+        Run(const T *entry, std::ostream &stream) {
+            stream.write(reinterpret_cast<const char *>(entry), sizeof(T));
+            return stream.good();
+        }
+    };
+
+    template<typename T>
+    struct Writer<T, std::void_t<decltype(std::declval<T>().Write())>> {
+        static bool
+        Run(const T *entry, std::ostream &stream) {
+            return entry->Write(stream);
+        }
+    };
+
+    template<typename T, typename = void>
+    struct Reader {
+        static bool
+        Run(T *entry, std::istream &stream) {
+            stream.read(reinterpret_cast<char *>(entry), sizeof(T));
+            return stream.good();
+        }
+    };
+
+    template<typename T>
+    struct Reader<T, std::void_t<decltype(std::declval<T>().Read())>> {
+        static bool
+        Run(T *entry, std::istream &stream) {
+            return entry->Read(stream);
+        }
+    };
 
     /**
      * Template specialization for serialization.
@@ -244,4 +279,4 @@ namespace erl::common {
 
     template<typename T>
     using TokenReadFunctionPairs = std::vector<TokenReadFunctionPair<T>>;
-}  // namespace erl::common
+}  // namespace erl::common::serialization

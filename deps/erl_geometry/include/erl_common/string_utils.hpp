@@ -54,4 +54,13 @@ namespace erl::common {
         (ss << ... << args);  // https://en.cppreference.com/w/cpp/language/fold
         return ss.str();
     }
+
+    inline std::vector<std::string>
+    SplitString(const std::string &str, const char delimiter) {
+        std::vector<std::string> tokens;
+        std::stringstream ss(str);
+        std::string token;
+        while (std::getline(ss, token, delimiter)) { tokens.push_back(token); }
+        return tokens;
+    }
 }  // namespace erl::common

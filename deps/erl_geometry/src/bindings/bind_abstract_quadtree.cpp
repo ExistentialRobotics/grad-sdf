@@ -4,7 +4,8 @@
 
 template<typename Dtype>
 void
-BindAbstractQuadtreeImpl(const py::module& m, const char* name) {
+BindAbstractQuadtreeImpl(const py::module &m, const char *name) {
+    using namespace erl::common::serialization;
     using namespace erl::geometry;
     using T = AbstractQuadtree<Dtype>;
 
@@ -15,14 +16,14 @@ BindAbstractQuadtreeImpl(const py::module& m, const char* name) {
         .def("write_setting", &T::WriteSetting)
         .def(
             "write",
-            [](const T* self, const std::string& filename) -> bool {
-                return erl::common::Serialization<T>::Write(filename, self);
+            [](const T *self, const std::string &filename) -> bool {
+                return Serialization<T>::Write(filename, self);
             },
             py::arg("filename"))
         .def(
             "read",
-            [](T* self, const std::string& filename) -> bool {
-                return erl::common::Serialization<T>::Read(filename, self);
+            [](T *self, const std::string &filename) -> bool {
+                return Serialization<T>::Read(filename, self);
             },
             py::arg("filename"))
         .def(
@@ -33,7 +34,7 @@ BindAbstractQuadtreeImpl(const py::module& m, const char* name) {
             py::arg("max_depth"))
         .def(
             "search_node",
-            py::overload_cast<const QuadtreeKey&, uint32_t>(&T::SearchNode, py::const_),
+            py::overload_cast<const QuadtreeKey &, uint32_t>(&T::SearchNode, py::const_),
             py::arg("key"),
             py::arg("max_depth"));
     py::class_<typename T::QuadtreeNodeIterator>(tree, "QuadtreeNodeIterator")
@@ -49,7 +50,7 @@ BindAbstractQuadtreeImpl(const py::module& m, const char* name) {
 }
 
 void
-BindAbstractQuadtree(const py::module& m) {
+BindAbstractQuadtree(const py::module &m) {
     BindAbstractQuadtreeImpl<double>(m, "AbstractQuadtreeD");
     BindAbstractQuadtreeImpl<float>(m, "AbstractQuadtreeF");
 }

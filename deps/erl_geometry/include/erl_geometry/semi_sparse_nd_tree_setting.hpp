@@ -13,16 +13,13 @@ namespace erl::geometry {
         std::size_t init_voxel_num = 200000;  // initial number of voxels to allocate memory for
         bool cache_voxel_centers = false;     // whether to cache voxel centers
 
+        ERL_REFLECT_SCHEMA(
+            SemiSparseNdTreeSetting,
+            ERL_REFLECT_MEMBER(SemiSparseNdTreeSetting, semi_sparse_depth),
+            ERL_REFLECT_MEMBER(SemiSparseNdTreeSetting, init_voxel_num),
+            ERL_REFLECT_MEMBER(SemiSparseNdTreeSetting, cache_voxel_centers));
+
         bool
-        operator==(const NdTreeSetting& other) const override;
+        operator==(const NdTreeSetting &other) const override;
     };
 }  // namespace erl::geometry
-
-template<>
-struct YAML::convert<erl::geometry::SemiSparseNdTreeSetting> {
-    static Node
-    encode(const erl::geometry::SemiSparseNdTreeSetting& setting);
-
-    static bool
-    decode(const Node& node, erl::geometry::SemiSparseNdTreeSetting& setting);
-};  // namespace YAML

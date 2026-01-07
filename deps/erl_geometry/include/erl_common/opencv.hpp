@@ -4,13 +4,40 @@
     #include "grid_map_info.hpp"
     #include "logging.hpp"
 
-    #include <Eigen/Dense>
     #include <opencv2/core.hpp>
     #include <opencv2/core/eigen.hpp>
     #include <opencv2/highgui.hpp>
     #include <opencv2/imgproc.hpp>
 
+    #include <algorithm>
+
 namespace erl::common {
+
+    template<typename T, int Channels = 1>
+    int
+    CvMatType() {
+        if constexpr (std::is_same_v<T, uint8_t>) {
+            return CV_8UC(Channels);
+        } else if constexpr (std::is_same_v<T, int8_t>) {
+            return CV_8SC(Channels);
+        } else if constexpr (std::is_same_v<T, uint16_t>) {
+            return CV_16UC(Channels);
+        } else if constexpr (std::is_same_v<T, int16_t>) {
+            return CV_16SC(Channels);
+        } else if constexpr (std::is_same_v<T, int32_t>) {
+            return CV_32SC(Channels);
+        } else if constexpr (std::is_same_v<T, float>) {
+            return CV_32FC(Channels);
+        } else if constexpr (std::is_same_v<T, double>) {
+            return CV_64FC(Channels);
+        } else {
+            // the following line should not use false directly because it is evaluated
+            // unconditionally with old compilers, e.g. GCC9.
+            static_assert(!std::is_same_v<T, T>, "Unsupported type for cv::Mat.");
+            return -1;
+        }
+    }
+
     inline const std::vector<cv::Vec3b> kCustomColorMap = {
         // BGR            // RGB
         {154, 154, 154},  // #9a9a9a
@@ -443,12 +470,12 @@ namespace erl::common {
                 if (value > max) { max = value; }
             }
         }
-        if (nan_value < min) { min = nan_value; }
-        if (nan_value > max) { max = nan_value; }
-        if (inf_value < min) { min = inf_value; }
-        if (inf_value > max) { max = inf_value; }
+        min = std::min(nan_value, min);
+        max = std::max(nan_value, max);
+        min = std::min(inf_value, min);
+        max = std::max(inf_value, max);
 
-        double value_range = (max - min) / 255.;
+        const double value_range = (max - min) / 255.;
         nan_value = (nan_value - min) / value_range;
         inf_value = (inf_value - min) / value_range;
 
@@ -464,7 +491,7 @@ namespace erl::common {
                 }
             }
         }
-        Eigen::MatrixXi normalized_mat_int = normalized_mat.cast<int>();
+        const Eigen::MatrixXi normalized_mat_int = normalized_mat.cast<int>();
         cv::Mat cv_mat;
         cv::eigen2cv(normalized_mat_int, cv_mat);
         cv_mat = ColorGrayCustom(cv_mat);
@@ -595,6 +622,59 @@ namespace erl::common {
             cv::add(merged_mask, colored_mask, merged_mask);
         }
         return merged_mask;
+    }
+
+    template<typename Dtype>
+    void
+    InflateWithShape(
+        const cv::Mat &original_mat,
+        const std::shared_ptr<common::GridMapInfo2D<Dtype>> &grid_map_info,
+        Eigen::Matrix2X<Dtype> shape_metric_contour,
+        cv::Mat &inflated_mat) {
+        // inflate the grid map: x to the bottom, y to the right, along y first
+        // create the dilation_kernel and anchor
+        std::vector<std::vector<cv::Point>> contours(1);
+        auto &contour = contours[0];  // each point is a 2D point (col, row), i.e. (y, x)
+        long n_vertices = shape_metric_contour.cols();
+        contour.reserve(n_vertices);
+        int row_min = std::numeric_limits<int>::max();
+        int row_max = -std::numeric_limits<int>::max();
+        int col_min = std::numeric_limits<int>::max();
+        int col_max = -std::numeric_limits<int>::max();
+        for (int i = 0; i < n_vertices; ++i) {
+            int x = grid_map_info->MeterToGridAtDim(shape_metric_contour(0, i), 0);
+            int y = grid_map_info->MeterToGridAtDim(shape_metric_contour(1, i), 1);
+            contour.emplace_back(y, x);
+            if (x < row_min) { row_min = x; }
+            if (x > row_max) { row_max = x; }
+            if (y < col_min) { col_min = y; }
+            if (y > col_max) { col_max = y; }
+        }
+        // the kernel should cover the origin (0, 0)
+        int row_0 = grid_map_info->MeterToGridAtDim(0, 0);
+        int col_0 = grid_map_info->MeterToGridAtDim(0, 1);
+        if (row_0 < row_min) { row_min = row_0; }
+        if (row_0 > row_max) { row_max = row_0; }
+        if (col_0 < col_min) { col_min = col_0; }
+        if (col_0 > col_max) { col_max = col_0; }
+        // When anchor is (-1, -1), the anchor is set to the dilation_kernel center.
+        // Otherwise, anchor (col, row) should be within the dilation_kernel.
+        int kernel_height = row_max - row_min + 1;
+        int kernel_width = col_max - col_min + 1;
+        ERL_ASSERTM(kernel_height > 0, "kernel_height {} is negative.", kernel_height);
+        ERL_ASSERTM(kernel_width > 0, "kernel_width {} is negative.", kernel_width);
+        cv::Mat dilation_kernel(kernel_height, kernel_width, CV_8UC1, cv::Scalar(0));
+        for (auto &point: contour) {
+            point.x -= col_min;
+            point.y -= row_min;
+        }
+        cv::drawContours(dilation_kernel, contours, 0, 1, cv::FILLED, cv::LINE_8);  // fill with 1
+
+        // dilate the grid map
+        cv::Point anchor(col_0 - col_min, row_0 - row_min);  // anchor is the origin.
+        // dst(x, y) = max_{(x', y') of nonzero elements in kernel}
+        // src(x + x' - anchor.x, y + y' - anchor.y)
+        cv::dilate(original_mat, inflated_mat, dilation_kernel, anchor, 1);
     }
 }  // namespace erl::common
 

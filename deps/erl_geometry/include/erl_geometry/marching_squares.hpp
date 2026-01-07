@@ -111,5 +111,8 @@ namespace erl::geometry {
             Eigen::Matrix2Xf &vertices,
             Eigen::Matrix2Xi &lines_to_vertices,
             Eigen::Matrix2Xi &objects_to_lines);
+
+        static void
+        SortLinesToObjects(Eigen::Matrix2Xi &lines_to_vertices, Eigen::Matrix2Xi &objects_to_lines);
     };
 }  // namespace erl::geometry

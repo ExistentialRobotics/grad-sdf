@@ -30,12 +30,12 @@ namespace erl::geometry {
 
         explicit AbstractQuadtree(std::shared_ptr<NdTreeSetting> setting);
 
-        AbstractQuadtree(const AbstractQuadtree& other) = default;
-        AbstractQuadtree&
-        operator=(const AbstractQuadtree& other) = default;
-        AbstractQuadtree(AbstractQuadtree&& other) = default;
-        AbstractQuadtree&
-        operator=(AbstractQuadtree&& other) = default;
+        AbstractQuadtree(const AbstractQuadtree &other) = default;
+        AbstractQuadtree &
+        operator=(const AbstractQuadtree &other) = default;
+        AbstractQuadtree(AbstractQuadtree &&other) = default;
+        AbstractQuadtree &
+        operator=(AbstractQuadtree &&other) = default;
 
         virtual ~AbstractQuadtree() = default;
 
@@ -52,7 +52,7 @@ namespace erl::geometry {
          * @return A new tree of the same type.
          */
         [[nodiscard]] virtual std::shared_ptr<AbstractQuadtree>
-        Create(const std::shared_ptr<NdTreeSetting>& setting) const = 0;
+        Create(const std::shared_ptr<NdTreeSetting> &setting) const = 0;
 
         /**
          * Create a new tree of the given type.
@@ -61,14 +61,14 @@ namespace erl::geometry {
          * @return
          */
         static std::shared_ptr<AbstractQuadtree>
-        CreateTree(const std::string& tree_id, const std::shared_ptr<NdTreeSetting>& setting);
+        CreateTree(const std::string &tree_id, const std::shared_ptr<NdTreeSetting> &setting);
 
         template<typename Derived>
         static std::enable_if_t<std::is_base_of_v<AbstractQuadtree, Derived>, bool>
-        Register(const std::string& tree_type = "") {
+        Register(const std::string &tree_type = "") {
             return Factory::GetInstance().template Register<Derived>(
                 tree_type,
-                [](const std::shared_ptr<NdTreeSetting>& setting) {
+                [](const std::shared_ptr<NdTreeSetting> &setting) {
                     auto tree_setting =
                         std::dynamic_pointer_cast<typename Derived::Setting>(setting);
                     if (setting == nullptr) {
@@ -98,17 +98,17 @@ namespace erl::geometry {
         ApplySetting() = 0;
 
         [[nodiscard]] bool
-        ReadSetting(std::istream& s) const;
+        ReadSetting(std::istream &s) const;
 
         void
-        WriteSetting(std::ostream& s) const;
+        WriteSetting(std::ostream &s) const;
 
         //-- comparison
         [[nodiscard]] virtual bool
-        operator==(const AbstractQuadtree& other) const = 0;
+        operator==(const AbstractQuadtree &other) const = 0;
 
         [[nodiscard]] bool
-        operator!=(const AbstractQuadtree& other) const;
+        operator!=(const AbstractQuadtree &other) const;
 
         //-- get tree information
         [[nodiscard]] uint32_t
@@ -133,16 +133,16 @@ namespace erl::geometry {
         GetMetricMin() const;
 
         void
-        GetMetricMin(Vector2& min);
+        GetMetricMin(Vector2 &min);
 
         void
-        GetMetricMin(Vector2& min) const;
+        GetMetricMin(Vector2 &min) const;
 
         virtual void
-        GetMetricMin(Dtype& x, Dtype& y) = 0;
+        GetMetricMin(Dtype &x, Dtype &y) = 0;
 
         virtual void
-        GetMetricMin(Dtype& x, Dtype& y) const = 0;
+        GetMetricMin(Dtype &x, Dtype &y) const = 0;
 
         Vector2
         GetMetricMax();
@@ -151,16 +151,16 @@ namespace erl::geometry {
         GetMetricMax() const;
 
         void
-        GetMetricMax(Vector2& max);
+        GetMetricMax(Vector2 &max);
 
         void
-        GetMetricMax(Vector2& max) const;
+        GetMetricMax(Vector2 &max) const;
 
         virtual void
-        GetMetricMax(Dtype& x, Dtype& y) = 0;
+        GetMetricMax(Dtype &x, Dtype &y) = 0;
 
         virtual void
-        GetMetricMax(Dtype& x, Dtype& y) const = 0;
+        GetMetricMax(Dtype &x, Dtype &y) const = 0;
 
         Aabb<Dtype, 2>
         GetMetricAabb();
@@ -175,16 +175,16 @@ namespace erl::geometry {
         GetMetricMinMax() const;
 
         void
-        GetMetricMinMax(Vector2& min, Vector2& max);
+        GetMetricMinMax(Vector2 &min, Vector2 &max);
 
         void
-        GetMetricMinMax(Vector2& min, Vector2& max) const;
+        GetMetricMinMax(Vector2 &min, Vector2 &max) const;
 
         virtual void
-        GetMetricMinMax(Dtype& min_x, Dtype& min_y, Dtype& max_x, Dtype& max_y) = 0;
+        GetMetricMinMax(Dtype &min_x, Dtype &min_y, Dtype &max_x, Dtype &max_y) = 0;
 
         virtual void
-        GetMetricMinMax(Dtype& min_x, Dtype& min_y, Dtype& max_x, Dtype& max_y) const = 0;
+        GetMetricMinMax(Dtype &min_x, Dtype &min_y, Dtype &max_x, Dtype &max_y) const = 0;
 
         Vector2
         GetMetricSize();
@@ -193,16 +193,16 @@ namespace erl::geometry {
         GetMetricSize() const;
 
         void
-        GetMetricSize(Vector2& size);
+        GetMetricSize(Vector2 &size);
 
         void
-        GetMetricSize(Vector2& size) const;
+        GetMetricSize(Vector2 &size) const;
 
         virtual void
-        GetMetricSize(Dtype& x, Dtype& y) = 0;
+        GetMetricSize(Dtype &x, Dtype &y) = 0;
 
         virtual void
-        GetMetricSize(Dtype& x, Dtype& y) const = 0;
+        GetMetricSize(Dtype &x, Dtype &y) const = 0;
 
         [[nodiscard]] virtual Dtype
         GetNodeSize(uint32_t depth) const = 0;
@@ -218,7 +218,7 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] bool
-        Write(std::ostream& s) const;
+        Write(std::ostream &s) const;
 
         /**
          * Write all nodes to the output stream (without the file header) for a created tree.
@@ -226,24 +226,27 @@ namespace erl::geometry {
          * @param s
          * @return
          */
-        virtual std::ostream&
-        WriteData(std::ostream& s) const = 0;
+        virtual std::ostream &
+        WriteData(std::ostream &s) const = 0;
 
         bool
-        Read(std::istream& s);
+        Read(std::istream &s);
 
         /**
          * Read all nodes from the input steam (without the file header) for a created tree.
          */
-        virtual std::istream&
-        ReadData(std::istream& s) = 0;
+        virtual std::istream &
+        ReadData(std::istream &s) = 0;
+
+        virtual std::ostream &
+        Print(std::ostream &os) const = 0;
 
         //-- search node
-        [[nodiscard]] virtual const AbstractQuadtreeNode*
+        [[nodiscard]] virtual const AbstractQuadtreeNode *
         SearchNode(Dtype x, Dtype y, uint32_t max_depth) const = 0;
 
-        [[nodiscard]] virtual const AbstractQuadtreeNode*
-        SearchNode(const QuadtreeKey& key, uint32_t max_depth) const = 0;
+        [[nodiscard]] virtual const AbstractQuadtreeNode *
+        SearchNode(const QuadtreeKey &key, uint32_t max_depth) const = 0;
 
         //-- iterators
         struct QuadtreeNodeIterator {
@@ -263,9 +266,9 @@ namespace erl::geometry {
             Next() = 0;
             [[nodiscard]] virtual bool
             IsValid() const = 0;
-            [[nodiscard]] virtual const AbstractQuadtreeNode*
+            [[nodiscard]] virtual const AbstractQuadtreeNode *
             GetNode() const = 0;
-            [[nodiscard]] virtual const QuadtreeKey&
+            [[nodiscard]] virtual const QuadtreeKey &
             GetKey() const = 0;
             [[nodiscard]] virtual QuadtreeKey
             GetIndexKey() const = 0;
@@ -275,7 +278,7 @@ namespace erl::geometry {
         GetTreeIterator(uint32_t max_depth) const = 0;
 
         [[nodiscard]] virtual std::shared_ptr<QuadtreeNodeIterator>
-        GetLeafInAabbIterator(const Aabb<Dtype, 2>& aabb, uint32_t max_depth) const = 0;
+        GetLeafInAabbIterator(const Aabb<Dtype, 2> &aabb, uint32_t max_depth) const = 0;
     };
 
     extern template class AbstractQuadtree<double>;

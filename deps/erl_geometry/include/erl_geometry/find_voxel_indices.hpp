@@ -21,7 +21,7 @@ namespace erl::geometry {
         if (children == nullptr) { return -1; }
 
         uint64_t shift = level * Dim;
-        uint64_t mask = ((1 << Dim) - 1) << shift;
+        uint64_t mask = ((1ul << Dim) - 1ul) << shift;
         IndexType index = 0;
 
         while (level >= 0) {

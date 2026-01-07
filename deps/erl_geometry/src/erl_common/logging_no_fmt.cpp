@@ -6,15 +6,15 @@
 
 namespace erl::common {
 
-    LoggingNoFmt::Level LoggingNoFmt::s_level_ = LoggingNoFmt::Level::kInfo;
+    LoggingLevel LoggingNoFmt::s_level_ = LoggingLevel::kInfo;
     std::mutex LoggingNoFmt::g_print_mutex;
 
     void
-    LoggingNoFmt::SetLevel(Level level) {
+    LoggingNoFmt::SetLevel(LoggingLevel level) {
         s_level_ = level;
     }
 
-    LoggingNoFmt::Level
+    LoggingLevel
     LoggingNoFmt::GetLevel() {
         return s_level_;
     }

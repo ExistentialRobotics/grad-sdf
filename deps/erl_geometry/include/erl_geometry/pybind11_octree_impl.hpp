@@ -17,13 +17,11 @@ BindOctreeImpl(PyClass &tree) {
         .def_property_readonly("tree_center", &Octree::GetTreeCenter)
         .def_property_readonly("tree_center_key", &Octree::GetTreeCenterKey)
         .def_property_readonly("tree_max_half_size", &Octree::GetTreeMaxHalfSize)
-        .def_property_readonly("metric_min", [](Octree &self) { return self.GetMetricMin(); })
-        .def_property_readonly("metric_max", [](Octree &self) { return self.GetMetricMax(); })
-        .def_property_readonly(
-            "metric_min_max",
-            [](Octree &self) { return self.GetMetricMinMax(); })
-        .def_property_readonly("metric_aabb", [](Octree &self) { return self.GetMetricAabb(); })
-        .def_property_readonly("metric_size", [](Octree &self) { return self.GetMetricSize(); })
+        .def_property_readonly("metric_min", py::overload_cast<>(&Octree::GetMetricMin))
+        .def_property_readonly("metric_max", py::overload_cast<>(&Octree::GetMetricMax))
+        .def_property_readonly("metric_min_max", py::overload_cast<>(&Octree::GetMetricMinMax))
+        .def_property_readonly("metric_aabb", py::overload_cast<>(&Octree::GetMetricAabb))
+        .def_property_readonly("metric_size", py::overload_cast<>(&Octree::GetMetricSize))
         .def("get_node_size", &Octree::GetNodeSize, py::arg("depth"))
         .def_property_readonly("number_of_leaf_nodes", &Octree::ComputeNumberOfLeafNodes)
         .def_property_readonly("memory_usage", &Octree::GetMemoryUsage)

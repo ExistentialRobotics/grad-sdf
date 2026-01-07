@@ -23,7 +23,7 @@ namespace erl::geometry {
         explicit SemiSparseOctree(const std::string &filename)
             : SemiSparseOctree() {
             ERL_ASSERTM(
-                common::Serialization<SemiSparseOctree>::Read(filename, this),
+                common::serialization::Serialization<SemiSparseOctree>::Read(filename, this),
                 "Failed to read SemiSparseOctree from file: {}",
                 filename);
         }

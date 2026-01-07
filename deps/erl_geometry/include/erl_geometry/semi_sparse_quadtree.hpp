@@ -23,7 +23,7 @@ namespace erl::geometry {
         explicit SemiSparseQuadtree(const std::string &filename)
             : SemiSparseQuadtree() {
             ERL_ASSERTM(
-                common::Serialization<SemiSparseQuadtree>::Read(filename, this),
+                common::serialization::Serialization<SemiSparseQuadtree>::Read(filename, this),
                 "Failed to read SemiSparseQuadtree from file: {}",
                 filename);
         }

@@ -8,8 +8,7 @@ namespace erl::geometry {
     template<typename Dtype, class Node, class Setting>
     SemiSparseOctreeBase<Dtype, Node, Setting>::SemiSparseOctreeBase(
         const std::shared_ptr<Setting> &setting)
-        : Super(setting),
-          m_setting_(setting) {
+        : Super(setting), m_setting_(setting) {
 
         m_parents_.resize(m_setting_->init_voxel_num);
         m_children_.resize(Eigen::NoChange, m_setting_->init_voxel_num);
@@ -141,12 +140,11 @@ namespace erl::geometry {
         int child_level = tree_depth - 1;
         const uint64_t code = key.ToMortonCode();
         uint64_t shift = (child_level << 1) + child_level;  // child_level * 3
-        uint64_t mask = 0b111 << shift;
+        uint64_t mask = 0b111ul << shift;
         while (child_level >= min_level) {
             if (const auto child_index = static_cast<int>((code & mask) >> shift);
                 node->HasChild(child_index)) {
                 node = this->GetNodeChild(node, child_index);
-                // node_index = m_children_[node_index][child_index];
                 node_index = m_children_(child_index, node_index);
             } else {
                 std::tie(node, node_index) = CreateNode(key, child_level, node, child_index);
@@ -210,7 +208,6 @@ namespace erl::geometry {
         return geometry::FindVoxelIndex<NodeIndex, uint64_t, 3>(
             key.ToMortonCode(),
             m_setting_->tree_depth - 1,
-            // m_children_[0].data()
             m_children_.data());
     }
 
@@ -223,8 +220,6 @@ namespace erl::geometry {
         const NodeIndex child_index) {
 
         if (m_recycled_node_indices_.empty()) {
-            // const auto node_index = static_cast<NodeIndex>(m_children_.size());
-
             const NodeIndex node_index = m_buf_head_;
             if (m_buf_head_ >= m_parents_.size()) {  // need to expand the buffers
                 const long new_size = 2 * m_buf_head_ + 1;
@@ -238,7 +233,7 @@ namespace erl::geometry {
             }
             m_parents_[m_buf_head_] = parent_node_index;
             m_children_.col(m_buf_head_).setConstant(-1);
-            m_voxels_.col(m_buf_head_) << key[0], key[1], key[2], (1 << level);
+            m_voxels_.col(m_buf_head_) << key[0], key[1], key[2], (1ul << level);
             m_vertices_.col(m_buf_head_).setConstant(-1);
             if (m_setting_->cache_voxel_centers) {
                 const auto r = static_cast<Dtype>(m_setting_->resolution);
@@ -257,11 +252,6 @@ namespace erl::geometry {
             }
             ++m_buf_head_;
 
-            // m_parents_.push_back(parent_node_index);
-            // m_children_.push_back({-1, -1, -1, -1, -1, -1, -1, -1});
-            // m_voxels_.push_back({key[0], key[1], key[2], (1 << level)});
-            // m_vertices_.push_back({-1, -1, -1, -1, -1, -1, -1, -1});
-
             if (parent_node_index >= 0) {
                 m_children_(child_index, parent_node_index) = node_index;
             }
@@ -271,7 +261,7 @@ namespace erl::geometry {
         const NodeIndex node_index = *it;
         m_recycled_node_indices_.erase(it);
         m_parents_[node_index] = parent_node_index;
-        m_voxels_.col(node_index) << key[0], key[1], key[2], (1 << level);
+        m_voxels_.col(node_index) << key[0], key[1], key[2], (1ul << level);
         if (m_setting_->cache_voxel_centers) {
             const auto r = static_cast<Dtype>(m_setting_->resolution);
             const auto key_offset = this->m_tree_key_offset_;
@@ -319,7 +309,6 @@ namespace erl::geometry {
             const NodeIndex parent_node_idx = parent->GetNodeIndex();
             if (BuildFullTree(this->AdjustKeyToDepth(node_key, depth - 1), parent)) {
                 node = this->GetNodeChild(parent, child_index);
-                // node_index = m_children_[parent_node_idx][child_index];
                 node_index = m_children_(child_index, parent_node_idx);
             } else {
                 // the child is not created in BuildFullTree, create it now.
@@ -352,7 +341,6 @@ namespace erl::geometry {
             auto [it, inserted] =
                 m_key_to_vertex_map_.try_emplace(vertex_key, m_vertex_keys_.size());
             if (inserted) { m_vertex_keys_.push_back(vertex_key); }
-            // m_vertices_[node_idx][i] = it->second;
             m_vertices_(i, node_idx) = it->second;
         }
     }
@@ -369,7 +357,7 @@ namespace erl::geometry {
 
         this->ExpandNode(node);
         const OctreeKey::KeyType child_level = m_setting_->tree_depth - depth - 1;
-        const OctreeKey::KeyType offset = (1 << child_level) >> 1;
+        const OctreeKey::KeyType offset = (1ul << child_level) >> 1;
         const NodeIndex parent_node_idx = node->GetNodeIndex();
         for (int i = 0; i < 8; ++i) {
             OctreeKey child_key;
@@ -392,15 +380,10 @@ namespace erl::geometry {
         const NodeIndex node_index = node->GetNodeIndex();
         const NodeIndex child_node_index = child->GetNodeIndex();
         const int child_pos = child->GetChildIndex();
-        // m_children_[node_index][child_pos] = -1;
         m_children_(child_pos, node_index) = -1;
         m_recycled_node_indices_.emplace(child_node_index);
 
         m_parents_[child_node_index] = -1;
-        // m_children_[child_node_index] = {-1, -1, -1, -1, -1, -1, -1, -1};
-        // m_voxels_[child_node_index] = {0, 0, 0, 0};
-        // m_vertices_[child_node_index] = {-1, -1, -1, -1, -1, -1, -1, -1};
-
         m_children_.col(child_node_index).setConstant(-1);
         m_voxels_.col(child_node_index).setZero();
         m_vertices_.col(child_node_index).setConstant(-1);

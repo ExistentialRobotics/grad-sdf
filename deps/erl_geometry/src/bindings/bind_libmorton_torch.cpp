@@ -44,5 +44,7 @@ Args:
 
 Returns:
     torch.Tensor: Output tensor of shape (..., dims) with dtype torch.uint16 or torch.uint32.)pbdoc");
+#else
+    (void) m;
 #endif
 }

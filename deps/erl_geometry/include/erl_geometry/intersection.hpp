@@ -165,6 +165,7 @@ namespace erl::geometry {
      * @param d2           output distance from p to the second intersection point (farthest one if
      * p is outside the box, backward one if p is inside the box)
      * @param intersected  output whether the ray intersects the box
+     * @param is_inside   output whether the ray starts inside the box
      */
     template<typename Dtype>
     void

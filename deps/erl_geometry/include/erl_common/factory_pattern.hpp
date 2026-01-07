@@ -15,10 +15,11 @@ namespace erl::common {
     public:
         using BaseType = Base;
         using ArgsType = std::tuple<Args...>;
-        using InitFunction = std::function<std::conditional_t<
+        using ReturnType = std::conditional_t<
             RawPtr,
             Base *,
-            std::conditional_t<UniquePtr, std::unique_ptr<Base>, std::shared_ptr<Base>>>(Args...)>;
+            std::conditional_t<UniquePtr, std::unique_ptr<Base>, std::shared_ptr<Base>>>;
+        using InitFunction = std::function<ReturnType(Args...)>;
 
     private:
         std::map<std::string, InitFunction> m_class_id_mapping_ = {};
@@ -60,7 +61,7 @@ namespace erl::common {
             return true;
         }
 
-        std::shared_ptr<Base>
+        ReturnType
         Create(const std::string &class_id, Args... args) {
             const auto it = m_class_id_mapping_.find(class_id);
             if (it == m_class_id_mapping_.end()) {

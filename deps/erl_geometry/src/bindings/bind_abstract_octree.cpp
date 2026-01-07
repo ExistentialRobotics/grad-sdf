@@ -4,7 +4,8 @@
 
 template<typename Dtype>
 void
-BindAbstractOctreeImpl(const py::module& m, const char* name) {
+BindAbstractOctreeImpl(const py::module &m, const char *name) {
+    using namespace erl::common::serialization;
     using namespace erl::geometry;
     using T = AbstractOctree<Dtype>;
 
@@ -15,14 +16,14 @@ BindAbstractOctreeImpl(const py::module& m, const char* name) {
         .def("write_setting", &T::WriteSetting)
         .def(
             "write",
-            [](const T* self, const std::string& filename) -> bool {
-                return erl::common::Serialization<T>::Write(filename, self);
+            [](const T *self, const std::string &filename) -> bool {
+                return Serialization<T>::Write(filename, self);
             },
             py::arg("filename"))
         .def(
             "read",
-            [](T* self, const std::string& filename) -> bool {
-                return erl::common::Serialization<T>::Read(filename, self);
+            [](T *self, const std::string &filename) -> bool {
+                return Serialization<T>::Read(filename, self);
             },
             py::arg("filename"))
         .def(
@@ -34,7 +35,7 @@ BindAbstractOctreeImpl(const py::module& m, const char* name) {
             py::arg("max_depth"))
         .def(
             "search_node",
-            py::overload_cast<const OctreeKey&, uint32_t>(&T::SearchNode, py::const_),
+            py::overload_cast<const OctreeKey &, uint32_t>(&T::SearchNode, py::const_),
             py::arg("key"),
             py::arg("max_depth"));
     py::class_<typename T::OctreeNodeIterator>(tree, "OctreeNodeIterator")
@@ -51,7 +52,7 @@ BindAbstractOctreeImpl(const py::module& m, const char* name) {
 }
 
 void
-BindAbstractOctree(const py::module& m) {
+BindAbstractOctree(const py::module &m) {
     BindAbstractOctreeImpl<double>(m, "AbstractOctreeD");
     BindAbstractOctreeImpl<float>(m, "AbstractOctreeF");
 }

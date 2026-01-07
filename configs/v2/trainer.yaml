@@ -36,8 +36,8 @@ model:
         gradient_augmentation: true
     residual_net_cfg:
         identifier: grad_sdf.residual_net.ResidualNetConfig
-        bound_min:
-        bound_max:
+        bound_min: [-10, -10, -10]  # placeholder, will be overwritten by the dataset bounds
+        bound_max: [10, 10, 10]  # placeholder, will be overwritten by the dataset bounds
         resolution: 0.1
         num_levels: 4
         feature_dims: 2

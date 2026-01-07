@@ -3,6 +3,7 @@
 #include "erl_common/factory_pattern.hpp"
 #include "erl_common/logging.hpp"
 
+#include <array>
 #include <memory>
 #include <string>
 
@@ -15,11 +16,11 @@ namespace erl::geometry {
     protected:
         uint32_t m_depth_ = 0;
         int m_child_index_ = -1;
-        AbstractQuadtreeNode **m_children_ = nullptr;
         uint32_t m_num_children_ = 0;
+        std::array<std::unique_ptr<AbstractQuadtreeNode>, 4> m_children_;
 
     public:
-        using Factory = common::FactoryPattern<AbstractQuadtreeNode, false, false, uint32_t, int>;
+        using Factory = common::FactoryPattern<AbstractQuadtreeNode, true, false, uint32_t, int>;
 
         // rules of five: https://www.youtube.com/watch?v=juAZDfsaMvY
         // except for user-defined constructor,
@@ -50,7 +51,7 @@ namespace erl::geometry {
         operator=(AbstractQuadtreeNode &&other) noexcept;
 
         // destructor
-        virtual ~AbstractQuadtreeNode() { this->DeleteChildrenPtr(); }
+        virtual ~AbstractQuadtreeNode() = default;
 
         //-- factory pattern
         [[nodiscard]] std::string
@@ -60,10 +61,10 @@ namespace erl::geometry {
          * Implemented by derived classes to create a new node of the same type.
          * @return a new node of the same type.
          */
-        [[nodiscard]] virtual AbstractQuadtreeNode *
+        [[nodiscard]] virtual std::unique_ptr<AbstractQuadtreeNode>
         Create(uint32_t depth, int child_index) const = 0;
 
-        static std::shared_ptr<AbstractQuadtreeNode>
+        static std::unique_ptr<AbstractQuadtreeNode>
         CreateNode(const std::string &node_type, uint32_t depth, int child_index);
 
         template<typename Derived>
@@ -72,7 +73,7 @@ namespace erl::geometry {
             return Factory::GetInstance().Register<Derived>(
                 node_type,
                 [](uint32_t depth, int child_index) {
-                    return std::make_shared<Derived>(depth, child_index);
+                    return std::make_unique<Derived>(depth, child_index);
                 });
         }
 
@@ -80,7 +81,7 @@ namespace erl::geometry {
          * Deep copy of the node. Used for copy constructor and copy assignment.
          * @return deep copy of the node.
          */
-        [[nodiscard]] virtual AbstractQuadtreeNode *
+        [[nodiscard]] virtual std::unique_ptr<AbstractQuadtreeNode>
         Clone() const = 0;
 
         //-- attributes
@@ -102,6 +103,9 @@ namespace erl::geometry {
         virtual std::ostream &
         WriteData(std::ostream &s) const = 0;
 
+        virtual std::ostream &
+        Print(std::ostream &os) const;
+
         //-- comparison
 
         [[nodiscard]] virtual bool
@@ -113,12 +117,6 @@ namespace erl::geometry {
         }
 
         //-- children
-
-        void
-        AllocateChildrenPtr();
-
-        void
-        DeleteChildrenPtr();
 
         [[nodiscard]] uint32_t
         GetNumChildren() const {
@@ -144,9 +142,9 @@ namespace erl::geometry {
         GetChild(const uint32_t child_index) {
             ERL_DEBUG_ASSERT(
                 child_index < 4,
-                "Child index must be in [0, 3], but got %u.",
+                "Child index must be in [0, 3], but got {}.",
                 child_index);
-            return static_cast<Derived *>(m_children_[child_index]);
+            return static_cast<Derived *>(m_children_[child_index].get());
         }
 
         template<typename Derived>
@@ -154,9 +152,9 @@ namespace erl::geometry {
         GetChild(const uint32_t child_index) const {
             ERL_DEBUG_ASSERT(
                 child_index < 4,
-                "Child index must be in [0, 3], but got %u.",
+                "Child index must be in [0, 3], but got {}.",
                 child_index);
-            return static_cast<const Derived *>(m_children_[child_index]);
+            return static_cast<const Derived *>(m_children_[child_index].get());
         }
 
         [[nodiscard]] virtual bool

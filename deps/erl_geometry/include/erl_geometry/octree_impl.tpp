@@ -12,8 +12,7 @@ namespace erl::geometry {
     template<class Node, class Interface, class InterfaceSetting>
     OctreeImpl<Node, Interface, InterfaceSetting>::OctreeImpl(
         std::shared_ptr<InterfaceSetting> setting)
-        : Interface(setting),
-          m_setting_(std::move(setting)) {
+        : Interface(setting), m_setting_(std::move(setting)) {
         this->ApplySettingToOctreeImpl();
     }
 
@@ -321,7 +320,7 @@ namespace erl::geometry {
     OctreeImpl<Node, Interface, InterfaceSetting>::GetNodeSize(const uint32_t depth) const {
         ERL_DEBUG_ASSERT(
             depth <= m_setting_->tree_depth,
-            "Depth must be in [0, %u], but got %u.\n",
+            "Depth must be in [0, {}], but got {}.\n",
             m_setting_->tree_depth,
             depth);
         return m_size_lookup_table_[depth];
@@ -356,7 +355,7 @@ namespace erl::geometry {
                     if (child != nullptr) { nodes_stack.push_back(child); }
                 }
             } else {
-                num_leaf_nodes++;
+                ++num_leaf_nodes;
             }
         }
         return num_leaf_nodes;
@@ -388,7 +387,7 @@ namespace erl::geometry {
         while (!nodes_stack.empty()) {
             const Node *node = nodes_stack.back();
             nodes_stack.pop_back();
-            num_nodes++;
+            ++num_nodes;
 
             if (node->HasAnyChild()) {  // if the node has any child, push them into the stack
                 for (uint32_t i = 0; i < 8; ++i) {
@@ -403,7 +402,10 @@ namespace erl::geometry {
     template<class Node, class Interface, class InterfaceSetting>
     OctreeKey::KeyType
     OctreeImpl<Node, Interface, InterfaceSetting>::CoordToKey(const Dtype coordinate) const {
-        return static_cast<uint32_t>(std::floor(coordinate * m_resolution_inv_)) +
+        // static_cast from float/double to uint32_t is undefined behavior, so we need to cast it to
+        // signed integer first
+        return static_cast<uint32_t>(
+                   static_cast<int64_t>(std::floor(coordinate * m_resolution_inv_))) +
                m_tree_key_offset_;
     }
 
@@ -415,10 +417,11 @@ namespace erl::geometry {
         const uint32_t tree_depth = m_setting_->tree_depth;
         ERL_DEBUG_ASSERT(
             depth <= tree_depth,
-            "Depth must be in [0, %u], but got %u.\n",
+            "Depth must be in [0, {}], but got {}.\n",
             tree_depth,
             depth);
-        const uint32_t keyval = std::floor(coordinate * m_resolution_inv_);
+        const uint32_t keyval =  // auto cast from real to unsigned integer is undefined behavior
+            static_cast<uint32_t>(static_cast<int64_t>(std::floor(coordinate * m_resolution_inv_)));
         const uint32_t diff = tree_depth - depth;
         if (!diff) { return keyval + m_tree_key_offset_; }
         return ((keyval >> diff) << diff) + static_cast<uint32_t>(1 << (diff - 1)) +
@@ -547,7 +550,7 @@ namespace erl::geometry {
         const uint32_t tree_depth = m_setting_->tree_depth;
         ERL_DEBUG_ASSERT(
             depth <= tree_depth,
-            "Depth must be in [0, %u], but got %u.\n",
+            "Depth must be in [0, {}], but got {}.\n",
             tree_depth,
             depth);
         const uint32_t level = tree_depth - depth;
@@ -565,7 +568,7 @@ namespace erl::geometry {
         if (depth == tree_depth) { return key; }
         ERL_DEBUG_ASSERT(
             depth <= tree_depth,
-            "Depth must be in [0, %u], but got %u.\n",
+            "Depth must be in [0, {}], but got {}.\n",
             tree_depth,
             depth);
         const uint32_t level = tree_depth - depth;
@@ -805,8 +808,7 @@ namespace erl::geometry {
     OctreeImpl<Node, Interface, InterfaceSetting>::IteratorBase::StackElement::StackElement(
         const Node *node,
         OctreeKey key)
-        : node(node),
-          key(std::move(key)) {}
+        : node(node), key(std::move(key)) {}
 
     template<class Node, class Interface, class InterfaceSetting>
     template<typename T>
@@ -817,15 +819,13 @@ namespace erl::geometry {
 
     template<class Node, class Interface, class InterfaceSetting>
     OctreeImpl<Node, Interface, InterfaceSetting>::IteratorBase::IteratorBase()
-        : m_tree_(nullptr),
-          m_max_node_depth_(0) {}
+        : m_tree_(nullptr), m_max_node_depth_(0) {}
 
     template<class Node, class Interface, class InterfaceSetting>
     OctreeImpl<Node, Interface, InterfaceSetting>::IteratorBase::IteratorBase(
         const OctreeImpl *tree,
         const uint32_t max_node_depth)
-        : m_tree_(tree),
-          m_max_node_depth_(max_node_depth) {
+        : m_tree_(tree), m_max_node_depth_(max_node_depth) {
         if (m_tree_ == nullptr) { return; }
         if (m_max_node_depth_ == 0) { m_max_node_depth_ = m_tree_->GetTreeDepth(); }
         if (m_tree_->m_root_ != nullptr) {  // the tree is not empty
@@ -969,7 +969,7 @@ namespace erl::geometry {
         uint32_t next_depth = node_depth + 1;
         ERL_DEBUG_ASSERT(
             next_depth <= m_max_node_depth_,
-            "Wrong depth: %u (max: %u).\n",
+            "Wrong depth: {} (max: {}).",
             next_depth,
             m_max_node_depth_);
         OctreeKey next_key;
@@ -1136,7 +1136,7 @@ namespace erl::geometry {
         uint32_t next_depth = node_depth + 1;
         ERL_DEBUG_ASSERT(
             next_depth <= this->m_max_node_depth_,
-            "Wrong depth: %u (max: %u).\n",
+            "Wrong depth: {} (max: {}).\n",
             next_depth,
             this->m_max_node_depth_);
         OctreeKey next_key;
@@ -1323,7 +1323,7 @@ namespace erl::geometry {
         : IteratorBase(tree, max_node_depth) {
         ERL_ASSERTM(
             cluster_depth <= this->m_max_node_depth_,
-            "Cluster max_node_depth %u is greater than max max_node_depth %u.\n",
+            "Cluster max_node_depth {} is greater than max max_node_depth {}.\n",
             cluster_depth,
             this->m_max_node_depth_);
 
@@ -2605,10 +2605,9 @@ namespace erl::geometry {
     template<class Node, class Interface, class InterfaceSetting>
     Node *
     OctreeImpl<Node, Interface, InterfaceSetting>::CreateNodeChild(Node *node, uint32_t child_idx) {
-        node->AllocateChildrenPtr();  // allocate children if necessary
         ERL_DEBUG_ASSERT(!node->HasChild(child_idx), "Child already exists.");
         Node *new_child = reinterpret_cast<Node *>(node->CreateChild(child_idx));  // create child
-        m_tree_size_++;          // increase tree size
+        ++m_tree_size_;          // increase tree size
         m_size_changed_ = true;  // the size of the tree has changed
         return new_child;
     }
@@ -2752,7 +2751,7 @@ namespace erl::geometry {
             this->DeleteNodeDescendants(child, key);    // delete the child's children recursively
             this->OnDeleteNodeChild(node, child, key);  // callback before deleting the child
             node->RemoveChild(child_idx);               // remove child
-            m_tree_size_--;                             // decrease tree size
+            --m_tree_size_;                             // decrease tree size
             m_size_changed_ = true;                     // the size of the tree has changed
             if (!node->HasAnyChild()) { return true; }  // node is pruned, can be deleted
         }
@@ -2890,11 +2889,7 @@ namespace erl::geometry {
     OctreeImpl<Node, Interface, InterfaceSetting>::Search(const OctreeKey &key, uint32_t max_depth)
         const {
         auto &tree_depth = m_setting_->tree_depth;
-        ERL_DEBUG_ASSERT(
-            max_depth <= tree_depth,
-            "Depth must be in [0, %u], but got %u.",
-            tree_depth,
-            max_depth);
+        ERL_DEBUG_ASSERT_LE(max_depth, tree_depth);
 
         if (m_root_ == nullptr) { return nullptr; }
         if (max_depth == 0) { max_depth = tree_depth; }
@@ -2930,7 +2925,7 @@ namespace erl::geometry {
         auto &tree_depth = m_setting_->tree_depth;
         ERL_DEBUG_ASSERT(
             max_depth <= tree_depth,
-            "Depth must be in [0, %u], but got %u.",
+            "Depth must be in [0, {}], but got {}.",
             tree_depth,
             max_depth);
 
@@ -2986,7 +2981,7 @@ namespace erl::geometry {
         if (depth == 0) { depth = tree_depth; }
         ERL_DEBUG_ASSERT(
             depth <= tree_depth,
-            "Depth must be in [0, %u], but got %u.",
+            "Depth must be in [0, {}], but got {}.",
             tree_depth,
             depth);
         if (this->m_root_ == nullptr) {
@@ -3025,7 +3020,7 @@ namespace erl::geometry {
         }
 
         m_root_ = std::make_shared<Node>();
-        m_tree_size_++;
+        ++m_tree_size_;
         std::list<Node *> nodes_stack;
         nodes_stack.push_back(m_root_.get());
         while (!nodes_stack.empty()) {
@@ -3039,12 +3034,11 @@ namespace erl::geometry {
             char children_char;
             s.read(&children_char, sizeof(char));
             std::bitset<8> children(static_cast<unsigned long long>(children_char));
-            node->AllocateChildrenPtr();
             for (int i = 7; i >= 0; --i) {  // the same order as the recursive implementation
                 if (!children[i]) { continue; }
                 Node *child_node = reinterpret_cast<Node *>(node->CreateChild(i));
                 nodes_stack.push_back(child_node);
-                m_tree_size_++;
+                ++m_tree_size_;
             }
         }
 
@@ -3080,6 +3074,61 @@ namespace erl::geometry {
         }
 
         return s;
+    }
+
+    template<class Node, class Interface, class InterfaceSetting>
+    std::ostream &
+    OctreeImpl<Node, Interface, InterfaceSetting>::Print(std::ostream &os) const {
+        if (m_root_ == nullptr) {
+            os << "Empty octree.\n";
+            return os;
+        }
+        std::vector<std::tuple<OctreeKey, int, const Node *, std::string, bool>> nodes_stack;
+        nodes_stack.push_back({CoordToKey(0.0, 0.0, 0.0), -1, m_root_.get(), "", true});
+        const char *last_child_prefix = "└── ";
+        const char *child_prefix = "├── ";
+        const char *last_indent = "    ";
+        const char *indent = "│   ";
+        while (!nodes_stack.empty()) {
+            auto [key, child_index, node, prefix, last_child] = nodes_stack.back();
+            nodes_stack.pop_back();
+            // print prefix, node address, and node data
+            os << prefix;
+            if (child_index == -1) {
+                os << "root:";
+            } else {
+                os << (last_child ? last_child_prefix : child_prefix) << child_index << ':';
+            }
+            os                      //
+                << '@' << std::hex  // print the address of the base class pointer for debugging
+                << reinterpret_cast<uint64_t>(static_cast<const AbstractOctreeNode *>(node))
+                << std::dec;
+            if (node == nullptr) { continue; }
+            os  //
+                << std::string(key)
+                << " [Center: " << this->KeyToCoord(key, node->GetDepth()).transpose()
+                << ", Size: " << this->GetNodeSize(node->GetDepth()) << "]";
+            os << " [";
+            node->Print(os);
+            os << "]\n";
+            if (!node->HasAnyChild()) { continue; }
+            int num_children = 0;
+            OctreeKey::KeyType center_offset_key = m_tree_key_offset_ >> (node->GetDepth() + 1);
+            for (int i = 7; i >= 0; --i) {
+                if (!node->HasChild(i)) { continue; }
+                const bool next_last_child = (num_children == 0);
+                std::string next_prefix;
+                if (child_index >= 0) {
+                    next_prefix = prefix + (last_child ? last_indent : indent);
+                }
+                OctreeKey child_key;
+                OctreeKey::ComputeChildKey(i, center_offset_key, key, child_key);
+                nodes_stack.push_back(
+                    {child_key, i, GetNodeChild(node, i), next_prefix, next_last_child});
+                ++num_children;
+            }
+        }
+        return os;
     }
 
     template<class Node, class Interface, class InterfaceSetting>

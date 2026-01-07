@@ -1,8 +1,10 @@
+from typing import Tuple
+
 import torch
 from pytorch3d.ops import knn_points
 
 
-def nearest_neighbor(src: torch.Tensor, dst: torch.Tensor) -> torch.Tensor:
+def nearest_neighbor(src: torch.Tensor, dst: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Find the nearest neighbor in dst for each point in src.
     Args:

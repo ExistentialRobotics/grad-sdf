@@ -255,6 +255,9 @@ namespace erl::geometry {
         virtual std::istream&
         ReadData(std::istream& s) = 0;
 
+        virtual std::ostream&
+        Print(std::ostream& os) const = 0;
+
         //-- search node
         [[nodiscard]] virtual const AbstractOctreeNode*
         SearchNode(Dtype x, Dtype y, Dtype z, uint32_t max_depth) const = 0;

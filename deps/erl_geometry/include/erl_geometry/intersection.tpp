@@ -1,4 +1,6 @@
-#include "erl_geometry/intersection.hpp"
+#pragma once
+
+#include <Eigen/Dense>
 
 #include <cmath>
 
@@ -24,11 +26,11 @@ namespace erl::geometry {
         Dtype dist = (dy_21 * dx_20 - dy_20 * dx_21) / std::sqrt(d);
         dist = std::abs(dist);
 
-        if (lam > 1.) {
+        if (lam > 1.0f) {
             const Dtype dx_10 = x1 - x0;
             const Dtype dy_10 = y1 - y0;
             dist = std::sqrt(dx_10 * dx_10 + dy_10 * dy_10);
-        } else if (lam < 0.) {
+        } else if (lam < 0.0f) {
             dist = std::sqrt(dx_20 * dx_20 + dy_20 * dy_20);
         }
 
@@ -126,76 +128,6 @@ namespace erl::geometry {
         Eigen::Vector3<Dtype> v1 = (1 - lam1) * p11 + lam1 * p12;
         Eigen::Vector3<Dtype> v2 = (1 - lam2) * p21 + lam2 * p22;
         intersected = (v1 - v2).squaredNorm() < std::numeric_limits<Dtype>::min();
-    }
-
-    template<typename Dtype>
-    void
-    ComputeIntersectionBetweenRayAndLine2D(
-        const Eigen::Vector2<Dtype> &p0,
-        const Eigen::Vector2<Dtype> &v,
-        const Eigen::Vector2<Dtype> &p1,
-        const Eigen::Vector2<Dtype> &p2,
-        Dtype &lam,
-        Dtype &dist,
-        bool &intersected) {
-
-        Eigen::Vector2<Dtype> v_21 = p2 - p1;
-        Eigen::Vector2<Dtype> v_20 = p2 - p0;
-
-        const Dtype tmp = v_21.x() * v.y() - v_21.y() * v.x();  // tmp = (p2 - p1).cross(v)
-        intersected = std::abs(tmp) > std::numeric_limits<Dtype>::min();
-        if (!intersected) {
-            lam = std::numeric_limits<Dtype>::infinity();
-            dist = std::numeric_limits<Dtype>::infinity();
-            return;
-        }
-        lam = (v_20.x() * v.y() - v_20.y() * v.x()) / tmp;  // (p2 - p0).cross(v) / tmp
-        dist = (v_21.x() * v_20.y() - v_21.y() * v_20.x()) /
-               tmp;  // dist = (p2 - p1).cross(p2 - p0) / tmp
-    }
-
-    template<typename Dtype, int Dim>
-    std::enable_if_t<Dim == 2>
-    ComputeIntersectionBetweenRayAndAabb(
-        const Eigen::Vector2<Dtype> &p,
-        const Eigen::Vector2<Dtype> &v_inv,
-        const Eigen::Vector2<Dtype> &box_min,
-        const Eigen::Vector2<Dtype> &box_max,
-        Dtype &d1,
-        Dtype &d2,
-        bool &intersected,
-        bool &is_inside) {
-        ComputeIntersectionBetweenRayAndAabb2D<Dtype>(
-            p,
-            v_inv,
-            box_min,
-            box_max,
-            d1,
-            d2,
-            intersected,
-            is_inside);
-    }
-
-    template<typename Dtype, int Dim>
-    std::enable_if_t<Dim == 3>
-    ComputeIntersectionBetweenRayAndAabb(
-        const Eigen::Vector3<Dtype> &p,
-        const Eigen::Vector3<Dtype> &v_inv,
-        const Eigen::Vector3<Dtype> &box_min,
-        const Eigen::Vector3<Dtype> &box_max,
-        Dtype &d1,
-        Dtype &d2,
-        bool &intersected,
-        bool &is_inside) {
-        ComputeIntersectionBetweenRayAndAabb3D<Dtype>(
-            p,
-            v_inv,
-            box_min,
-            box_max,
-            d1,
-            d2,
-            intersected,
-            is_inside);
     }
 
     template<typename Dtype>
@@ -330,6 +262,76 @@ namespace erl::geometry {
                 }
             }
         }
+    }
+
+    template<typename Dtype>
+    void
+    ComputeIntersectionBetweenRayAndLine2D(
+        const Eigen::Vector2<Dtype> &p0,
+        const Eigen::Vector2<Dtype> &v,
+        const Eigen::Vector2<Dtype> &p1,
+        const Eigen::Vector2<Dtype> &p2,
+        Dtype &lam,
+        Dtype &dist,
+        bool &intersected) {
+
+        Eigen::Vector2<Dtype> v_21 = p2 - p1;
+        Eigen::Vector2<Dtype> v_20 = p2 - p0;
+
+        const Dtype tmp = v_21.x() * v.y() - v_21.y() * v.x();  // tmp = (p2 - p1).cross(v)
+        intersected = std::abs(tmp) > std::numeric_limits<Dtype>::min();
+        if (!intersected) {
+            lam = std::numeric_limits<Dtype>::infinity();
+            dist = std::numeric_limits<Dtype>::infinity();
+            return;
+        }
+        lam = (v_20.x() * v.y() - v_20.y() * v.x()) / tmp;  // (p2 - p0).cross(v) / tmp
+        dist = (v_21.x() * v_20.y() - v_21.y() * v_20.x()) /
+               tmp;  // dist = (p2 - p1).cross(p2 - p0) / tmp
+    }
+
+    template<typename Dtype, int Dim>
+    std::enable_if_t<Dim == 2>
+    ComputeIntersectionBetweenRayAndAabb(
+        const Eigen::Vector2<Dtype> &p,
+        const Eigen::Vector2<Dtype> &v_inv,
+        const Eigen::Vector2<Dtype> &box_min,
+        const Eigen::Vector2<Dtype> &box_max,
+        Dtype &d1,
+        Dtype &d2,
+        bool &intersected,
+        bool &is_inside) {
+        ComputeIntersectionBetweenRayAndAabb2D<Dtype>(
+            p,
+            v_inv,
+            box_min,
+            box_max,
+            d1,
+            d2,
+            intersected,
+            is_inside);
+    }
+
+    template<typename Dtype, int Dim>
+    std::enable_if_t<Dim == 3>
+    ComputeIntersectionBetweenRayAndAabb(
+        const Eigen::Vector3<Dtype> &p,
+        const Eigen::Vector3<Dtype> &v_inv,
+        const Eigen::Vector3<Dtype> &box_min,
+        const Eigen::Vector3<Dtype> &box_max,
+        Dtype &d1,
+        Dtype &d2,
+        bool &intersected,
+        bool &is_inside) {
+        ComputeIntersectionBetweenRayAndAabb3D<Dtype>(
+            p,
+            v_inv,
+            box_min,
+            box_max,
+            d1,
+            d2,
+            intersected,
+            is_inside);
     }
 
     template<typename Dtype>

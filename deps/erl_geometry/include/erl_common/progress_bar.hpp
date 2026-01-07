@@ -7,6 +7,7 @@
 #include <iostream>
 #include <memory>
 #include <numeric>
+#include <sstream>
 #include <vector>
 
 namespace erl::common {
@@ -40,19 +41,19 @@ namespace erl::common {
             std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> m_prev_duration_{};
         std::chrono::duration<double> m_duration_{};
-        std::ostream& m_out_;
+        std::ostream &m_out_;
         bool m_displayed_ = false;
 
     public:
         static std::shared_ptr<ProgressBar>
-        Open(std::shared_ptr<Setting> setting = nullptr, std::ostream& out = std::cout);
+        Open(std::shared_ptr<Setting> setting = nullptr, std::ostream &out = std::cout);
 
-        ProgressBar(const ProgressBar&) = delete;
-        ProgressBar&
-        operator=(const ProgressBar&) = delete;
-        ProgressBar(ProgressBar&&) = delete;
-        ProgressBar&
-        operator=(ProgressBar&&) = delete;
+        ProgressBar(const ProgressBar &) = delete;
+        ProgressBar &
+        operator=(const ProgressBar &) = delete;
+        ProgressBar(ProgressBar &&) = delete;
+        ProgressBar &
+        operator=(ProgressBar &&) = delete;
 
         ~ProgressBar() { Close(); }
 
@@ -77,7 +78,7 @@ namespace erl::common {
         }
 
         void
-        SetDescription(const std::string& description) const {
+        SetDescription(const std::string &description) const {
             m_setting_->description = description;
         }
 
@@ -87,20 +88,20 @@ namespace erl::common {
         }
 
         void
-        Print(const std::string& msg) const {
+        Print(const std::string &msg) const {
             Write(msg, m_out_);
         }
 
         template<typename... Args>
         static void
-        Write(std::ostream& out, Args&&... args) {
+        Write(std::ostream &out, Args &&...args) {
             std::stringstream ss;
             (ss << ... << args);  // https://en.cppreference.com/w/cpp/language/fold
             Write(ss.str(), out);
         }
 
         static void
-        Write(const std::string& str = "", std::ostream& out = std::cout) {
+        Write(const std::string &str = "", std::ostream &out = std::cout) {
             if (s_progress_bars_.empty()) {
                 out << str << std::flush;
                 return;
@@ -129,14 +130,14 @@ namespace erl::common {
         }
 
         void
-        Update(const std::size_t n = 1, const std::string& msg = "") {
+        Update(const std::size_t n = 1, const std::string &msg = "") {
             UpdateCount(n);
             UpdateFraction();
             Write(msg, m_out_);
         }
 
         void
-        UpdateProgress(const std::size_t n, const std::string& msg = "") {
+        UpdateProgress(const std::size_t n, const std::string &msg = "") {
             m_prev_count_ = m_count_;
             m_count_ = n;
             UpdateDuration();
@@ -158,9 +159,8 @@ namespace erl::common {
     private:
         explicit ProgressBar(
             std::shared_ptr<Setting> setting = nullptr,
-            std::ostream& out = std::cout)
-            : m_setting_(std::move(setting)),
-              m_out_(out) {
+            std::ostream &out = std::cout)
+            : m_setting_(std::move(setting)), m_out_(out) {
             if (m_setting_ == nullptr) { m_setting_ = std::make_shared<Setting>(); }
         }
 
@@ -176,7 +176,7 @@ namespace erl::common {
         }
 
         static void
-        GoBackLines(std::ostream& out, const std::size_t num_lines) {
+        GoBackLines(std::ostream &out, const std::size_t num_lines) {
             // https://web.archive.org/web/20121225024852/http://www.climagic.org/mirrors/VT100_Escape_Codes.html
             out << "\33[2K\r";  // clear line
             // move the cursor up
@@ -266,7 +266,7 @@ namespace erl::common {
             std::string symbol_buffer = m_setting_->GetSymbolBuffer();
             std::size_t n = symbol_buffer.size() / 2;
             std::size_t bar_width = n - count_str.size() - time_str.size();
-            std::size_t offset =
+            std::size_t offset =  // static_cast from positive real to unsigned integer is fine.
                 n - static_cast<std::size_t>(static_cast<double>(bar_width) * m_fraction_);
 
             std::stringstream ss_bar;
@@ -285,7 +285,7 @@ namespace erl::common {
             if (std::none_of(
                     s_progress_bars_.begin(),
                     s_progress_bars_.end(),
-                    [this](const auto& bar) { return bar.lock().get() == this; })) {
+                    [this](const auto &bar) { return bar.lock().get() == this; })) {
                 s_progress_bars_.push_back(shared_from_this());
             }
         }

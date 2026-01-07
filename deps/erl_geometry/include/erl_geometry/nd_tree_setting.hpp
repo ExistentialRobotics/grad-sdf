@@ -12,21 +12,17 @@ namespace erl::geometry {
         float resolution = 0.1;
         uint32_t tree_depth = 16;
 
+        ERL_REFLECT_SCHEMA(
+            NdTreeSetting,
+            ERL_REFLECT_MEMBER(NdTreeSetting, resolution),
+            ERL_REFLECT_MEMBER(NdTreeSetting, tree_depth));
+
         virtual bool
-        operator==(const NdTreeSetting& other) const;
+        operator==(const NdTreeSetting &other) const;
 
         bool
-        operator!=(const NdTreeSetting& rhs) const {
+        operator!=(const NdTreeSetting &rhs) const {
             return !(*this == rhs);
         }
     };
 }  // namespace erl::geometry
-
-template<>
-struct YAML::convert<erl::geometry::NdTreeSetting> {
-    static Node
-    encode(const erl::geometry::NdTreeSetting& setting);
-
-    static bool
-    decode(const Node& node, erl::geometry::NdTreeSetting& setting);
-};  // namespace YAML

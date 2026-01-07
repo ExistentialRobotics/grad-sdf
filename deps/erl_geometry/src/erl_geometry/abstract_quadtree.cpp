@@ -195,7 +195,8 @@ namespace erl::geometry {
     template<typename Dtype>
     bool
     AbstractQuadtree<Dtype>::Write(std::ostream &s) const {
-        static const common::TokenWriteFunctionPairs<AbstractQuadtree> token_function_pairs = {
+        using namespace common::serialization;
+        static const TokenWriteFunctionPairs<AbstractQuadtree> token_function_pairs = {
             {
                 "setting",
                 [](const AbstractQuadtree *self, std::ostream &stream) {
@@ -213,13 +214,14 @@ namespace erl::geometry {
                 },
             },
         };
-        return common::WriteTokens(s, this, token_function_pairs);
+        return WriteTokens(s, this, token_function_pairs);
     }
 
     template<typename Dtype>
     bool
     AbstractQuadtree<Dtype>::Read(std::istream &s) {
-        static const common::TokenReadFunctionPairs<AbstractQuadtree> token_function_pairs = {
+        using namespace common::serialization;
+        static const TokenReadFunctionPairs<AbstractQuadtree> token_function_pairs = {
             {
                 "setting",
                 [](AbstractQuadtree *self, std::istream &stream) {
@@ -234,14 +236,14 @@ namespace erl::geometry {
                 [](AbstractQuadtree *self, std::istream &stream) {
                     std::size_t size;
                     stream >> size;
-                    common::SkipLine(stream);
+                    SkipLine(stream);
                     if (size > 0) { return self->ReadData(stream).good(); }
                     ERL_DEBUG("Load {} nodes", size);
                     return stream.good();
                 },
             },
         };
-        return common::ReadTokens(s, this, token_function_pairs);
+        return ReadTokens(s, this, token_function_pairs);
     }
 
     template class AbstractQuadtree<double>;

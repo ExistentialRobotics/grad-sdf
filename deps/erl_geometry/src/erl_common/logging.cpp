@@ -2,15 +2,19 @@
     #include "erl_common/logging.hpp"
 
 namespace erl::common {
-    Logging::Level Logging::s_level_ = kInfo;
+    #ifndef NDEBUG
+    LoggingLevel Logging::s_level_ = kDebug;
+    #else
+    LoggingLevel Logging::s_level_ = kInfo;
+    #endif
     std::mutex Logging::g_print_mutex;
 
     void
-    Logging::SetLevel(const Level level) {
+    Logging::SetLevel(const LoggingLevel level) {
         s_level_ = level;
     }
 
-    Logging::Level
+    LoggingLevel
     Logging::GetLevel() {
         return s_level_;
     }

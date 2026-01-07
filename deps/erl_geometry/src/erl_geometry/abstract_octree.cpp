@@ -195,7 +195,8 @@ namespace erl::geometry {
     template<typename Dtype>
     bool
     AbstractOctree<Dtype>::Write(std::ostream &s) const {
-        static const common::TokenWriteFunctionPairs<AbstractOctree> token_function_pairs = {
+        using namespace common::serialization;
+        static const TokenWriteFunctionPairs<AbstractOctree> token_function_pairs = {
             {
                 "setting",
                 [](const AbstractOctree *self, std::ostream &stream) {
@@ -213,13 +214,14 @@ namespace erl::geometry {
                 },
             },
         };
-        return common::WriteTokens(s, this, token_function_pairs);
+        return WriteTokens(s, this, token_function_pairs);
     }
 
     template<typename Dtype>
     bool
     AbstractOctree<Dtype>::Read(std::istream &s) {
-        static const common::TokenReadFunctionPairs<AbstractOctree> token_function_pairs = {
+        using namespace common::serialization;
+        static const TokenReadFunctionPairs<AbstractOctree> token_function_pairs = {
             {
                 "setting",
                 [](AbstractOctree *self, std::istream &stream) {
@@ -234,14 +236,14 @@ namespace erl::geometry {
                 [](AbstractOctree *self, std::istream &stream) {
                     std::size_t size;
                     stream >> size;
-                    common::SkipLine(stream);
+                    SkipLine(stream);
                     if (size > 0) { return self->ReadData(stream).good(); }
                     ERL_DEBUG("Load {} nodes", size);
                     return stream.good();
                 },
             },
         };
-        return common::ReadTokens(s, this, token_function_pairs);
+        return ReadTokens(s, this, token_function_pairs);
     }
 
     template class AbstractOctree<double>;

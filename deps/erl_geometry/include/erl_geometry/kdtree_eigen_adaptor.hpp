@@ -23,15 +23,17 @@ namespace erl::geometry {
         typename Metric = nanoflann::metric_L2_Simple,
         typename IndexType = long>
     class KdTreeEigenAdaptor {
-
-        using EigenMatrix = Eigen::Matrix<T, Dim, Eigen::Dynamic>;
-        using Self = KdTreeEigenAdaptor<T, Dim, Metric, IndexType>;
-        using NumType = typename EigenMatrix::Scalar;
+    public:
+        using DataMatrix = Eigen::Matrix<T, Dim, Eigen::Dynamic>;
+        using Self = KdTreeEigenAdaptor;
+        using NumType = typename DataMatrix::Scalar;
         using MetricType = typename Metric::template traits<NumType, Self>::distance_t;
         using TreeType = nanoflann::KDTreeSingleIndexAdaptor<MetricType, Self, Dim, IndexType>;
+        using ResultItem = nanoflann::ResultItem<IndexType, NumType>;
 
+    private:
         std::shared_ptr<TreeType> m_tree_ = nullptr;
-        EigenMatrix m_data_matrix_{};
+        DataMatrix m_data_matrix_{};
         const int m_leaf_max_size_;
 
     public:
@@ -39,11 +41,10 @@ namespace erl::geometry {
             : m_leaf_max_size_(leaf_max_size) {}
 
         explicit KdTreeEigenAdaptor(
-            EigenMatrix mat,
+            DataMatrix mat,
             const bool build = true,
             const int leaf_max_size = 10)
-            : m_data_matrix_(std::move(mat)),
-              m_leaf_max_size_(leaf_max_size) {
+            : m_data_matrix_(std::move(mat)), m_leaf_max_size_(leaf_max_size) {
 
             if (build) { Build(); }
         }
@@ -53,13 +54,13 @@ namespace erl::geometry {
             long num_points,
             const bool build = true,
             const int leaf_max_size = 10)
-            : m_data_matrix_(Eigen::Map<const EigenMatrix>(data, Dim, num_points)),
+            : m_data_matrix_(Eigen::Map<const DataMatrix>(data, Dim, num_points)),
               m_leaf_max_size_(leaf_max_size) {
 
             if (build) { Build(); }
         }
 
-        [[nodiscard]] const EigenMatrix &
+        [[nodiscard]] const DataMatrix &
         GetDataMatrix() const {
             return m_data_matrix_;
         }
@@ -70,7 +71,7 @@ namespace erl::geometry {
         }
 
         void
-        SetDataMatrix(EigenMatrix mat, const bool build = true) {
+        SetDataMatrix(DataMatrix mat, const bool build = true) {
             m_data_matrix_ = std::move(mat);
             m_tree_ = nullptr;  // invalidate the tree
             if (build) { Build(); }
@@ -78,7 +79,7 @@ namespace erl::geometry {
 
         void
         SetDataMatrix(const T *data, long num_points, const bool build = true) {
-            m_data_matrix_ = Eigen::Map<const EigenMatrix>(data, Dim, num_points);
+            m_data_matrix_ = Eigen::Map<const DataMatrix>(data, Dim, num_points);
             m_tree_ = nullptr;  // invalidate the tree
             if (build) { Build(); }
         }
@@ -104,34 +105,123 @@ namespace erl::geometry {
             m_tree_->buildIndex();
         }
 
-        void
-        Knn(size_t k,
-            const Eigen::Ref<const Eigen::Vector<T, Dim>> &point,
-            Eigen::VectorX<IndexType> &indices_out,
-            Eigen::VectorX<NumType> &metric_out) {
-            ERL_ASSERTM(m_tree_ != nullptr, "tree is not ready yet. Please call Build() first.");
-            m_tree_->knnSearch(point.data(), k, indices_out.data(), metric_out.data());
+        [[nodiscard]] long
+        Size() const {
+            return m_data_matrix_.cols();
         }
 
-        void
-        Nearest(
-            const Eigen::Ref<const Eigen::Vector<T, Dim>> &point,
-            IndexType &index,
-            NumType &metric) const {
-            ERL_ASSERTM(m_tree_ != nullptr, "tree is not ready yet. Please call Build() first.");
-            m_tree_->knnSearch(point.data(), 1, &index, &metric);
+        /**
+         * K nearest neighbor search. The output distances are sorted.
+         * @param k The number of nearest neighbors to search.
+         * @param point The query point.
+         * @param indices_out The output indices of the nearest neighbors.
+         * @param metric_out The output distances to the nearest neighbors. If L2, squared distances
+         * are returned.
+         * @return The number of neighbors found. Smaller than k if there are not enough points in
+         * the tree.
+         */
+        [[nodiscard]] IndexType
+        Knn(IndexType k,
+            const Eigen::Vector<T, Dim> &point,
+            Eigen::VectorX<IndexType> &indices_out,
+            Eigen::VectorX<NumType> &metric_out) {
+            ERL_ASSERT_GT(k, 0);
+            ERL_ASSERT_PTR(m_tree_);
+
+            if (indices_out.size() < k) {
+                indices_out.setConstant(k, -1);
+            } else {
+                indices_out.setConstant(-1);
+            }
+            if (metric_out.size() < k) { metric_out.resize(k); }
+            k = m_tree_->knnSearch(point.data(), k, indices_out.data(), metric_out.data());
+            return k;
+        }
+
+        /**
+         * K nearest neighbor search. The output distances are sorted.
+         * @param k The number of nearest neighbors to search.
+         * @param point The query point.
+         * @param indices_out The output indices of the nearest neighbors.
+         * @param metric_out The output distances to the nearest neighbors. If L2, squared distances
+         * are returned.
+         * @return The number of neighbors found. Smaller than k if there are not enough points in
+         * the tree.
+         */
+        [[nodiscard]] IndexType
+        Knn(IndexType k,
+            const Eigen::Vector<T, Dim> &point,
+            std::vector<IndexType> &indices_out,
+            std::vector<NumType> &metric_out) const {
+            ERL_ASSERT_GT(k, 0);
+            ERL_ASSERT_PTR(m_tree_);
+            indices_out.resize(k, -1);
+            metric_out.resize(k);
+            k = m_tree_->knnSearch(point.data(), k, indices_out.data(), metric_out.data());
+            return k;
+        }
+
+        [[nodiscard]] bool
+        Nearest(const Eigen::Vector<T, Dim> &point, IndexType &index, NumType &metric) const {
+            ERL_ASSERT_PTR(m_tree_);
+            return m_tree_->knnSearch(point.data(), 1, &index, &metric);
         }
 
         void
         RadiusSearch(
-            const Eigen::Ref<const Eigen::Vector<T, Dim>> &point,
-            NumType radius,
-            std::vector<nanoflann::ResultItem<IndexType, NumType>> &indices_dists,
-            const bool sorted) {
-            ERL_ASSERTM(m_tree_ != nullptr, "tree is not ready yet. Please call Build() first.");
+            const Eigen::Vector<T, Dim> &point,
+            const NumType radius,
+            const bool sorted,
+            std::vector<ResultItem> &indices_dists) const {
+            ERL_ASSERT_PTR(m_tree_);
             nanoflann::SearchParameters params;
             params.sorted = sorted;
-            m_tree_->radiusSearch(point.data(), radius, indices_dists, params);
+            m_tree_->radiusSearch(point.data(), radius * radius, indices_dists, params);
+        }
+
+        [[nodiscard]] IndexType
+        RadiusKnn(
+            IndexType k,
+            const Eigen::Vector<T, Dim> &point,
+            const NumType radius,
+            Eigen::VectorX<IndexType> &indices_out,
+            Eigen::VectorX<NumType> &metric_out) const {
+            ERL_ASSERT_GT(k, 0);
+            ERL_ASSERT_PTR(m_tree_);
+
+            if (indices_out.size() < k) {
+                indices_out.setConstant(k, -1);
+            } else {
+                indices_out.setConstant(-1);
+            }
+            if (metric_out.size() < k) { metric_out.resize(k); }
+            k = m_tree_->rknnSearch(
+                point.data(),
+                k,
+                indices_out.data(),
+                metric_out.data(),
+                radius * radius);
+            return k;
+        }
+
+        [[nodiscard]] IndexType
+        RadiusKnn(
+            IndexType k,
+            const Eigen::Vector<T, Dim> &point,
+            const NumType radius,
+            std::vector<IndexType> &indices_out,
+            std::vector<NumType> &metric_out) const {
+            ERL_ASSERT_GT(k, 0);
+            ERL_ASSERT_PTR(m_tree_);
+            indices_out.resize(k, -1);
+            metric_out.resize(k);
+            k = m_tree_->rknnSearch(
+                point.data(),
+                k,
+                indices_out.data(),
+                metric_out.data(),
+                radius * radius);
+            return k;
         }
 
         // Returns the number of points: used by TreeType
