@@ -5,9 +5,9 @@ exp_name: grad_sdf
 device: cuda
 data:
     identifier: grad_sdf.dataset.data_config.DataConfig
-    dataset_name: replica
+    dataset_name: newercollege
     dataset_args:
-        data_path: ""
+        data_path: "data/newercollege-lidar"
         min_depth: 0.0
         max_depth: -1.0
         offset: [0.0, 0.0, 0.0]
@@ -21,7 +21,7 @@ key_frame_set:
     insert_interval: 50
     insert_ratio: 0.85
     frame_selection: multiple_max_set_coverage
-    selection_window_size: 32
+    selection_window_size: 8
     frame_weight: uniform
 model:
     identifier: grad_sdf.model.SdfNetworkConfig
@@ -30,7 +30,7 @@ model:
         resolution: 0.7
         tree_depth: 8 # 0.14*512=71.68m  mesh size  [39.74192742 57.25316639 27.58267038]
         semi_sparse_depth: 5
-        init_voxel_num: 2000000
+        init_voxel_num: 500000
         insertion_threshold: 3
         skip_insertion_if_exists: true # speed up a bit
         gradient_augmentation: true
@@ -64,7 +64,7 @@ criterion:
     sign_loss_free_weight: 0.0
     sign_loss_occ_weight: 0.0
     sign_loss_temperature: 100.0
-num_init_frames: 12
+num_init_frames: 3
 init_frame_iterations: 10
 num_iterations_per_frame: 1
 num_rays_total: 81920

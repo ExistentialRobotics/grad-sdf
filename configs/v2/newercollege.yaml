@@ -6,7 +6,7 @@ base_config: trainer.yaml
 exp_name: newercolleage
 data:
     dataset_args:
-        data_path: "data/NewerCollege_rotated/quat"
+        data_path: "data/newercollege-lidar"
         min_depth: 0.6
         max_depth: 25.0
         # offset: [20, 29, 14]

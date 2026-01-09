@@ -143,3 +143,90 @@ class DepthFrame(Frame):
             pose = self.get_ref_pose().to(points.device)
             points = points @ pose[:3, :3].T + pose[:3, 3]  # to world coordinates
         return points
+
+
+class LiDARFrame():
+    def __init__(
+        self,
+        fid: int,
+        pointcloud: torch.Tensor,
+        offset: torch.Tensor,
+        ref_pose: torch.Tensor,
+    ) -> None:
+        self.stamp = fid
+        self.points = pointcloud
+        self.offset = offset
+
+        if ref_pose.ndim != 2:
+            ref_pose = ref_pose.reshape(4, 4)
+        if not isinstance(ref_pose, torch.Tensor):  # from gt data
+            self.ref_pose = torch.tensor(ref_pose, requires_grad=False, dtype=torch.float32)
+        else:  # from tracked data
+            self.ref_pose = ref_pose.clone().requires_grad_(False)
+        self.ref_pose[:3, 3] += offset  # Offset ensures voxel coordinates > 0
+        self.rays_d: torch.Tensor = self.get_rays()  # (N, 3) in world coordinates
+
+        self.valid_mask: torch.Tensor = torch.ones(pointcloud.shape[0], dtype=torch.bool)
+
+    def get_frame_index(self):
+        return self.stamp
+
+    def get_ref_pose(self):
+        return self.ref_pose
+
+    def get_ref_translation(self):
+        return self.ref_pose[:3, 3]
+
+    def get_ref_rotation(self):
+        return self.ref_pose[:3, :3]
+
+    def get_points(self, to_world_frame: bool, device: str):
+        points = self.points.to(device)
+        if to_world_frame:
+            pose = self.get_ref_pose().to(device)
+            points = points @ pose[:3, :3].T + pose[:3, 3]  # to world coordinates
+        return points
+    def get_depth(self):
+        return torch.norm(self.points, dim=-1)  # (N,)
+
+    @torch.no_grad()
+    def get_rays(self):
+        rays = self.points @ self.ref_pose[:3, :3].T + self.ref_pose[:3, 3]
+        rays_d = torch.nn.functional.normalize(rays, p=2, dim=-1)
+        return rays_d
+
+    def get_rays_direction(self):
+        return self.rays_d
+
+    def get_valid_mask(self):
+        return self.valid_mask
+
+    def apply_bound(self, bound_min: torch.Tensor, bound_max: torch.Tensor):
+        points = self.points @ self.ref_pose[:3, :3].T + self.ref_pose[:3, 3]
+        mask = points >= bound_min.view(1, 3)
+        mask = mask & (points <= bound_max.view(1, 3))
+        mask = mask.all(dim=-1)
+        self.valid_mask = mask & self.valid_mask
+
+    def sample_points(
+        self,
+        num_points: int = -1,
+        ratio: float = 0.25,
+        to_world_frame: bool = True,
+        device: str = None,
+    ) -> torch.Tensor:
+        if num_points <= 0:
+            num_points = int(self.points.shape[0] * ratio)
+        indices = torch.argwhere(self.valid_mask).flatten()
+        if len(indices) <= num_points:
+            sampled_indices = indices
+        else:
+            perm = torch.randperm(len(indices))[:num_points]
+            sampled_indices = indices[perm]
+        points = self.points[sampled_indices]
+        if device is not None:
+            points = points.to(device)
+        if to_world_frame:
+            pose = self.get_ref_pose().to(points.device)
+            points = points @ pose[:3, :3].T + pose[:3, 3]  # to world coordinates
+        return points
