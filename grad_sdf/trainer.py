@@ -229,7 +229,24 @@ class Trainer:
                 voxel_indices_plus = self.find_voxel_indices(offset_points_plus)  # (n, m, 3)
                 voxel_indices_minus = self.find_voxel_indices(offset_points_minus)  # (n, m, 3)
         with self.timer_find_voxel_indices_sampled_xyz:
+            if frame.stamp == 499:
+                print(f"frame.stamp: {frame.stamp}")
+                print(f"self.samples.sampled_xyz.shape: {self.samples.sampled_xyz.shape}")
+                print(f"self.samples.sampled_xyz.min(): {self.samples.sampled_xyz.min()}")
+                print(f"self.samples.sampled_xyz.max(): {self.samples.sampled_xyz.max()}")
             voxel_indices = self.find_voxel_indices(self.samples.sampled_xyz)  # (n, m)
+
+        # 打印voxel_indices的统计信息
+        num_total = voxel_indices.numel()
+        num_ge0 = (voxel_indices >= 0).sum().item()
+        ratio_ge0 = num_ge0 / num_total if num_total > 0 else 0.0
+
+        print(
+            "\n" f"voxel_indices.shape: {voxel_indices.shape}",
+            f"voxel_indices.min(): {voxel_indices.min()}",
+            f"voxel_indices.max(): {voxel_indices.max()}",
+            f"ratio of indices >= 0: {ratio_ge0:.4f}",
+        )
 
         bs = int(self.cfg.batch_size / self.samples.sampled_xyz.shape[1])
 

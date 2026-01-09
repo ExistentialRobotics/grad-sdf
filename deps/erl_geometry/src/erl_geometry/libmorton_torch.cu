@@ -17,6 +17,7 @@ namespace erl::geometry {
     MortonEncodeTorchCUDA(const torch::Tensor &coords, torch::Tensor &codes) {
         CHECK_CUDA(coords);
         CHECK_CONTIGUOUS(coords);
+        TORCH_CHECK(coords.numel() > 0, "coords must not be empty.");
 
         const int64_t n = coords.ndimension();
         const int64_t d = coords.size(n - 1);

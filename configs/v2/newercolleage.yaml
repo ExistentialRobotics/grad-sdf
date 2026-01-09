@@ -1,0 +1,12 @@
+# Scene: room0,
+# bound_min: [-3.8696494102478027, -2.347562551498413, -1.4041465520858765]
+# bound_max: [3.869352102279663, 2.348031520843506, 1.3950726985931396]
+
+base_config: trainer.yaml
+exp_name: newercolleage
+data:
+    dataset_args:
+        data_path: "data/NewerCollege_rotated/quat"
+        min_depth: 0.6
+        max_depth: 25.0
+        # offset: [20, 29, 14]
