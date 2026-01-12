@@ -181,18 +181,20 @@ class LiDARFrame():
         return self.ref_pose[:3, :3]
 
     def get_points(self, to_world_frame: bool, device: str):
-        points = self.points.to(device)
+        points = self.points[self.valid_mask].reshape(-1, 3).to(device)
         if to_world_frame:
             pose = self.get_ref_pose().to(device)
             points = points @ pose[:3, :3].T + pose[:3, 3]  # to world coordinates
         return points
+
     def get_depth(self):
         return torch.norm(self.points, dim=-1)  # (N,)
 
     @torch.no_grad()
     def get_rays(self):
-        rays = self.points @ self.ref_pose[:3, :3].T + self.ref_pose[:3, 3]
-        rays_d = torch.nn.functional.normalize(rays, p=2, dim=-1)
+        # 返回局部坐标系中的归一化射线方向，与 DepthFrame 保持一致
+        # 后续在 key_frame_set.sample_rays 中会通过旋转矩阵转换到世界坐标系
+        rays_d = torch.nn.functional.normalize(self.points, p=2, dim=-1)
         return rays_d
 
     def get_rays_direction(self):

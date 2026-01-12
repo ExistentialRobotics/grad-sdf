@@ -7,7 +7,7 @@ data:
     identifier: grad_sdf.dataset.data_config.DataConfig
     dataset_name: newercollege
     dataset_args:
-        data_path: "data/newercollege-lidar"
+        data_path: "data/newercollege-lidar-rotated"
         min_depth: 0.0
         max_depth: -1.0
         offset: [0.0, 0.0, 0.0]
@@ -19,7 +19,7 @@ key_frame_set:
     identifier: grad_sdf.key_frame_set.KeyFrameSetConfig
     insert_method: intersection
     insert_interval: 50
-    insert_ratio: 0.85
+    insert_ratio: 0.7
     frame_selection: multiple_max_set_coverage
     selection_window_size: 8
     frame_weight: uniform
@@ -27,13 +27,13 @@ model:
     identifier: grad_sdf.model.SdfNetworkConfig
     octree_cfg:
         identifier: grad_sdf.octree_config.OctreeConfig
-        resolution: 0.7
-        tree_depth: 8 # 0.14*512=71.68m  mesh size  [39.74192742 57.25316639 27.58267038]
-        semi_sparse_depth: 5
-        init_voxel_num: 500000
-        insertion_threshold: 3
+        resolution: 0.1
+        tree_depth: 11 # 0.14*512=71.68m  mesh size  [39.74192742 57.25316639 27.58267038]
+        semi_sparse_depth: 7
+        init_voxel_num: 5000000
+        insertion_threshold: 1
         skip_insertion_if_exists: true # speed up a bit
-        gradient_augmentation: true
+        # gradient_augmentation: true
     residual_net_cfg:
         identifier: grad_sdf.residual_net.ResidualNetConfig
         bound_min: [-10, -10, -10] # placeholder, will be overwritten by the dataset bounds
@@ -54,8 +54,8 @@ criterion:
     boundary_loss_type: L1
     perturbation_loss_weight: 100
     perturbation_loss_type: L1
-    eikonal_loss_surface_weight: 10
-    eikonal_loss_space_weight: 10
+    eikonal_loss_surface_weight: 100
+    eikonal_loss_space_weight: 100
     eikonal_loss_type: L1
     projection_loss_weight: 100
     projection_loss_type: L1
@@ -69,22 +69,22 @@ init_frame_iterations: 10
 num_iterations_per_frame: 1
 num_rays_total: 81920
 extra_surface_sample: false # not helpful
-frame_downsample: 100
+frame_downsample: 10
 sample_rays:
     identifier: grad_sdf.utils.sampling.SampleRaysConfig
     n_stratified: 1
     n_perturbed: 2
-    depth_min: 0.25
+    depth_min: 0.1
     depth_max: 25.0
-    surface_margin: 0.08
-    sigma_s: 0.24
+    surface_margin: 0.37
+    sigma_s: 0.36
 batch_size: 204800
 lr: 0.005
 grad_method: finite_difference
 finite_difference_eps: 0.03
 final_iterations: 0
 save_mesh: true
-mesh_resolution: 0.1
+mesh_resolution: 0.2
 mesh_iso_value: 0.0
 clean_mesh: true
 ckpt_interval: -1

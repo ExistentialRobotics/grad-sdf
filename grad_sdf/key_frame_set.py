@@ -80,6 +80,7 @@ class KeyFrameSet:
         n_intersection = torch.sum(counts > 1).item()
         n_union = voxels_unique.shape[0]
         iou = n_intersection / n_union
+        print(f"iou: {iou}")
         if iou < self.cfg.insert_ratio:
             return True
         return False
