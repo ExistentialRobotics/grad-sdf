@@ -23,6 +23,12 @@ key_frame_set:
     frame_selection: multiple_max_set_coverage
     selection_window_size: 8
     frame_weight: uniform
+sample_table:
+    identifier: grad_sdf.sample_table.SampleTableConfig
+    pts_per_voxel: 100
+    surface_voxel_num: 100000
+    device: cuda
+    frames_num: 1988
 model:
     identifier: grad_sdf.model.SdfNetworkConfig
     octree_cfg:
@@ -74,8 +80,8 @@ sample_rays:
     identifier: grad_sdf.utils.sampling.SampleRaysConfig
     n_stratified: 1
     n_perturbed: 2
-    depth_min: 0.1
-    depth_max: 25.0
+    depth_min: 0.6
+    depth_max: -1.0
     surface_margin: 0.37
     sigma_s: 0.36
 batch_size: 204800

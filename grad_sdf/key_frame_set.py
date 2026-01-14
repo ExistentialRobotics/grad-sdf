@@ -16,6 +16,9 @@ class KeyFrameSetConfig(ConfigABC):
     frame_selection: str = "multiple_max_set_coverage"  # multiple_max_set_coverage | random
     selection_window_size: int = 8
     frame_weight: str = "uniform"
+    pts_per_voxel: int = 100
+    surface_voxel_num: int = 1000000
+    device: str = "cuda"
 
 
 class KeyFrameSet:
@@ -32,6 +35,10 @@ class KeyFrameSet:
         self.kf_seen_voxel_num: list[int] = []
         self.kf_unoptimized_voxels: Optional[torch.Tensor] = None
         self.kf_all_voxels: Optional[torch.Tensor] = None
+
+        self.sample_table = torch.full(
+            (self.max_num_voxels, self.cfg.pts_per_voxel, 4), -1, dtype=torch.float32, device=self.device
+        )
 
     def add_key_frame(self, frame: Frame, seen_voxel_indices: torch.Tensor):
         """

@@ -82,17 +82,22 @@ def generate_sdf_samples(
 
     # total_samples = n_stratified + n_perturbed + 1
 
-    # Create valid mask to filter out invalid depth values (0, negative, or NaN)
-    valid_mask = (
-        (depth_samples_all > 0) & (depth_samples_all < depth_max) & torch.isfinite(depth_samples_all)
-    )  # (num_rays,)
-    valid_indices = torch.nonzero(valid_mask, as_tuple=True)[0]  # (num_valid_rays,)
-    num_valid_rays = valid_indices.shape[0]
+    # # Create valid mask to filter out invalid depth values (0, negative, or NaN)
+    # valid_mask = (
+    #     (depth_samples_all > 0) & (depth_samples_all < depth_max) & torch.isfinite(depth_samples_all)
+    # )  # (num_rays,)
+    # valid_indices = torch.nonzero(valid_mask, as_tuple=True)[0]  # (num_valid_rays,)
+    # num_valid_rays = valid_indices.shape[0]
 
-    # Extract only valid rays data
-    rays_d_valid = rays_d_all[valid_indices]  # (num_valid_rays, 3)
-    rays_o_valid = rays_o_all[valid_indices]  # (num_valid_rays, 3)
-    depth_samples_valid = depth_samples_all[valid_indices]  # (num_valid_rays,)
+    # # Extract only valid rays data
+    # rays_d_valid = rays_d_all[valid_indices]  # (num_valid_rays, 3)
+    # rays_o_valid = rays_o_all[valid_indices]  # (num_valid_rays, 3)
+    # depth_samples_valid = depth_samples_all[valid_indices]  # (num_valid_rays,)
+    rays_d_valid = rays_d_all
+    rays_o_valid = rays_o_all
+    depth_samples_valid = depth_samples_all
+    num_valid_rays = rays_d_valid.shape[0]
+    valid_indices = torch.arange(num_valid_rays, device=device)
 
     #############################################################
     # 1. Stratified sampling (vectorized) - only for valid rays #

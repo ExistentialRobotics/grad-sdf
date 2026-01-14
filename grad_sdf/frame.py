@@ -145,7 +145,7 @@ class DepthFrame(Frame):
         return points
 
 
-class LiDARFrame():
+class LiDARFrame:
     def __init__(
         self,
         fid: int,

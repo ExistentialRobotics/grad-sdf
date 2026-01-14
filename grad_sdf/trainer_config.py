@@ -6,6 +6,7 @@ from grad_sdf.criterion import CriterionConfig
 from grad_sdf.dataset.data_config import DataConfig
 from grad_sdf.key_frame_set import KeyFrameSetConfig
 from grad_sdf.model import SdfNetworkConfig
+from grad_sdf.sample_table import SampleTableConfig
 from grad_sdf.utils.config_abc import ConfigABC
 from grad_sdf.utils.sampling import SampleRaysConfig
 
@@ -18,6 +19,7 @@ class TrainerConfig(ConfigABC):
     device: str = "cuda"
     data: DataConfig = field(default_factory=DataConfig)
     key_frame_set: KeyFrameSetConfig = field(default_factory=KeyFrameSetConfig)
+    sample_table: SampleTableConfig = field(default_factory=SampleTableConfig)
     model: SdfNetworkConfig = field(default_factory=SdfNetworkConfig)
     criterion: CriterionConfig = field(default_factory=CriterionConfig)
     num_init_frames: int = 3

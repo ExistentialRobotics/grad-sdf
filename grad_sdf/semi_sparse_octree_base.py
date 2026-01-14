@@ -80,9 +80,7 @@ class SemiSparseOctreeBase(torch.nn.Module, ABC):
             voxel_indices: (n_unique,) index of the voxel for each voxel, on CPU.
         """
         voxels = self.points_to_voxels(points)  # (n_points, 3) voxel coordinates
-        voxels_raw, counts = torch.unique(voxels, dim=0, return_inverse=False, return_counts=True)
-        voxels_valid = voxels_raw[counts > self.cfg.insertion_threshold]  # (n_valid, 3) of grid coordinates
-        voxels_unique = torch.unique(voxels_valid, dim=0)  # (n_unique, 3) of grid coordinates
+        voxels_unique = torch.unique(voxels, dim=0)  # (n_unique, 3) of grid coordinates
         if self.cfg.skip_insertion_if_exists and self.ever_inserted:
             device = self.sdf_priors.device
             voxel_indices = self.find_voxel_indices(voxels_unique.to(device), True)  # (n_unique,)

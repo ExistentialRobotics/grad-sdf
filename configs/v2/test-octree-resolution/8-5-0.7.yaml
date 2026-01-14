@@ -8,14 +8,14 @@ data:
     dataset_args:
         data_path: "data/newercollege-lidar-rotated"
         min_depth: 0.6
-        max_depth: 25.0
+        max_depth: -1.0
         # offset: [20, 29, 14]
 model:
     octree_cfg:
         resolution: 0.7
         tree_depth: 8 # 0.7*512=358.4m
         semi_sparse_depth: 5
-        init_voxel_num: 500000
+        init_voxel_num: 150000
         insertion_threshold: 8
         skip_insertion_if_exists: true # speed up a bit
         # gradient_augmentation: true

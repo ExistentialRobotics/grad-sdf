@@ -11,6 +11,7 @@ from grad_sdf.criterion import Criterion
 from grad_sdf.evaluator_grad_sdf import GradSdfEvaluator
 from grad_sdf.frame import Frame
 from grad_sdf.key_frame_set import KeyFrameSet
+from grad_sdf.sample_table import SampleTable
 from grad_sdf.loggers import BasicLogger
 from grad_sdf.model import SdfNetwork
 from grad_sdf.trainer_config import TrainerConfig
@@ -42,6 +43,7 @@ class Trainer:
             max_num_voxels=self.cfg.model.octree_cfg.init_voxel_num,
             device=self.cfg.device,
         )
+        self.sample_table = SampleTable(cfg=self.cfg.sample_table)
         self.model = SdfNetwork(cfg.model)
         self.model.to(self.cfg.device)
 
@@ -116,12 +118,15 @@ class Trainer:
 
             with self.timer_octree_insert:
                 _, seen_voxels = self.insert_points_to_octree(points)
+                voxel_indices = self.model.octree.find_voxel_indices(points.view(-1, 3), are_voxels=False)
+                self.sample_table.add_observation(frame=frame, voxel_indices=voxel_indices)
+                print(f"frame {frame_id} added to sample table")
 
-            with self.timer_key_frame_set_update:
-                is_key_frame = self.update_key_frame_set(frame, seen_voxels)
+            # with self.timer_key_frame_set_update:
+            #     is_key_frame = self.update_key_frame_set(frame, seen_voxels)
 
-            if is_key_frame:
-                self.logger.info(f"Frame {frame_id} is selected as a key frame.")
+            # if is_key_frame:
+            #     self.logger.info(f"Frame {frame_id} is selected as a key frame.")
 
             with self.timer_train_frame:
                 if not self.train_with_frame(frame=frame):
@@ -187,24 +192,48 @@ class Trainer:
             if not self.training_frame_start_callback(self, frame):
                 return False  # exit training
 
-        with self.timer_select_key_frames:
-            self.selected_key_frame_indices = self.key_frame_set.select_key_frames()
+        # with self.timer_select_key_frames:
+        #     self.selected_key_frame_indices = self.key_frame_set.select_key_frames()
+        # with self.timer_sample_rays:
+        #     rays_o_all, rays_d_all, depth_samples_all = self.key_frame_set.sample_rays(
+        #         num_samples=self.cfg.num_rays_total,
+        #         key_frame_indices=self.selected_key_frame_indices,
+        #         current_frame=frame,
+        #     )
+        #     rays_o_all = rays_o_all.to(self.cfg.device)
+        #     rays_d_all = rays_d_all.to(self.cfg.device)
+        #     depth_samples_all = depth_samples_all.to(self.cfg.device)
+        ray_origin = frame.get_ref_translation().to(self.cfg.device)
+        # 直接从 octree 中筛选离 ray_origin 近的 voxel indices（不依赖当前帧点云/扫描）
+        range_limits = torch.tensor([8.0, 10.0, 30.0], device=self.cfg.device)
+
+        # 过滤未初始化/无效的 voxel（通常 voxel_size==0 表示未被插入）
+        valid_voxel_mask = self.model.octree.voxels[:, -1] > 0  # (N_voxels,)
+        valid_voxel_indices = torch.nonzero(valid_voxel_mask, as_tuple=False).view(-1).long()
+
+        valid_centers = self.model.octree.voxel_centers[valid_voxel_indices]  # (N_valid, 3)
+        voxel_size = self.model.octree.voxels[valid_voxel_indices, -1]
+        size_mask = voxel_size == 1
+        dist = torch.abs(valid_centers - ray_origin.view(1, 3))  # (N_valid, 3)
+        dist_mask = (dist < range_limits.view(1, 3)).all(dim=-1)
+        near_voxel_indices = valid_voxel_indices[dist_mask & size_mask]
+        print(f"near_voxel_indices.shape: {near_voxel_indices.shape}")
         with self.timer_sample_rays:
-            rays_o_all, rays_d_all, depth_samples_all = self.key_frame_set.sample_rays(
+            rays_o_all, rays_d_all, depth_samples_all = self.sample_table.sample_rays(
                 num_samples=self.cfg.num_rays_total,
-                key_frame_indices=self.selected_key_frame_indices,
-                current_frame=frame,
+                main_voxel_indices=near_voxel_indices,
+                main_ratio=0.7,
             )
             rays_o_all = rays_o_all.to(self.cfg.device)
             rays_d_all = rays_d_all.to(self.cfg.device)
             depth_samples_all = depth_samples_all.to(self.cfg.device)
 
-            if self.cfg.extra_surface_sample:
-                self.extra_surface_pcd = self.key_frame_set.sample_points(
-                    ratio=1.0 / self.cfg.frame_downsample,
-                    key_frame_indices=self.selected_key_frame_indices,
-                    current_frame=frame,
-                )
+            # if self.cfg.extra_surface_sample:
+            #     self.extra_surface_pcd = self.key_frame_set.sample_points(
+            #         ratio=1.0 / self.cfg.frame_downsample,
+            #         key_frame_indices=self.selected_key_frame_indices,
+            #         current_frame=frame,
+            #     )
 
         with self.timer_generate_sdf_samples:
             self.samples = generate_sdf_samples(
@@ -229,11 +258,6 @@ class Trainer:
                 voxel_indices_plus = self.find_voxel_indices(offset_points_plus)  # (n, m, 3)
                 voxel_indices_minus = self.find_voxel_indices(offset_points_minus)  # (n, m, 3)
         with self.timer_find_voxel_indices_sampled_xyz:
-            if frame.stamp == 499:
-                print(f"frame.stamp: {frame.stamp}")
-                print(f"self.samples.sampled_xyz.shape: {self.samples.sampled_xyz.shape}")
-                print(f"self.samples.sampled_xyz.min(): {self.samples.sampled_xyz.min()}")
-                print(f"self.samples.sampled_xyz.max(): {self.samples.sampled_xyz.max()}")
             voxel_indices = self.find_voxel_indices(self.samples.sampled_xyz)  # (n, m)
 
         # 打印voxel_indices的统计信息
