@@ -82,10 +82,7 @@ class GuiTrainer:
         data_packet.frame_idx = frame.get_frame_index()
         data_packet.frame_pose = frame.get_ref_pose().cpu().numpy()
         data_packet.scan_points = frame.get_points(to_world_frame=True, device="cpu").numpy()
-        data_packet.key_frame_indices = [f.get_frame_index() for f in trainer.key_frame_set.frames]
-        data_packet.selected_key_frame_indices = trainer.selected_key_frame_indices
 
-        assert data_packet.key_frame_indices[-1] <= data_packet.frame_idx
         tqdm.write(f"[Training] Frame idx = {data_packet.frame_idx}")
 
         self.reply_gui(data_packet, must_reply=True)  # block until mapping is allowed to run

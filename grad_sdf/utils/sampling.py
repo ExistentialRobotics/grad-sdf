@@ -42,11 +42,13 @@ class SampleResults:
 
 @torch.no_grad()
 def generate_sdf_samples(
-    rays_d_all: torch.Tensor,
-    rays_o_all: torch.Tensor,
-    depth_samples_all: torch.Tensor,
+    rays_d_main: torch.Tensor,
+    rays_o_main: torch.Tensor,
+    depth_samples_main: torch.Tensor,
+    rays_d_extra: torch.Tensor,
+    rays_o_extra: torch.Tensor,
+    depth_samples_extra: torch.Tensor,
     cfg: SampleRaysConfig,
-    extra_surface_pcd: torch.Tensor = None,
     device=None,
 ) -> SampleResults:
     """
@@ -54,11 +56,13 @@ def generate_sdf_samples(
     Only processes valid rays (positive, finite depth values) and returns compact results.
 
     Args:
-        rays_d_all: Ray directions (num_rays, 3)
-        rays_o_all: Ray origins (num_rays, 3)
-        depth_samples_all: Surface depth values D[u,v] (num_rays,) or (num_rays, 1)
+        rays_d_main: Ray directions (num_rays_main, 3)
+        rays_o_main: Ray origins (num_rays_main, 3)
+        depth_samples_main: Surface depth values D[u,v] (num_rays_main,) or (num_rays_main, 1)
+        rays_d_extra: Ray directions (num_rays_extra, 3)
+        rays_o_extra: Ray origins (num_rays_extra, 3)
+        depth_samples_extra: Surface depth values D[u,v] (num_rays_extra,) or (num_rays_extra, 1)
         cfg: Configuration for sampling
-        extra_surface_pcd: Additional surface points for computing SDF (num_extra_points, 3)
         device: Device for computation
 
     Returns:
@@ -71,7 +75,7 @@ def generate_sdf_samples(
         valid_indices: Indices of valid rays in original input (num_valid_rays, )
     """
     if device is None:
-        device = rays_d_all.device
+        device = rays_d_main.device
 
     n_stratified = cfg.n_stratified
     n_perturbed = cfg.n_perturbed
@@ -80,24 +84,9 @@ def generate_sdf_samples(
     surface_margin = cfg.surface_margin
     sigma_s = cfg.sigma_s
 
-    # total_samples = n_stratified + n_perturbed + 1
+    num_valid_rays = rays_d_main.shape[0]
 
-    # # Create valid mask to filter out invalid depth values (0, negative, or NaN)
-    # valid_mask = (
-    #     (depth_samples_all > 0) & (depth_samples_all < depth_max) & torch.isfinite(depth_samples_all)
-    # )  # (num_rays,)
-    # valid_indices = torch.nonzero(valid_mask, as_tuple=True)[0]  # (num_valid_rays,)
-    # num_valid_rays = valid_indices.shape[0]
-
-    # # Extract only valid rays data
-    # rays_d_valid = rays_d_all[valid_indices]  # (num_valid_rays, 3)
-    # rays_o_valid = rays_o_all[valid_indices]  # (num_valid_rays, 3)
-    # depth_samples_valid = depth_samples_all[valid_indices]  # (num_valid_rays,)
-    rays_d_valid = rays_d_all
-    rays_o_valid = rays_o_all
-    depth_samples_valid = depth_samples_all
-    num_valid_rays = rays_d_valid.shape[0]
-    valid_indices = torch.arange(num_valid_rays, device=device)
+    extra_surface_xyz = rays_o_extra + depth_samples_extra.unsqueeze(1) * rays_d_extra
 
     #############################################################
     # 1. Stratified sampling (vectorized) - only for valid rays #
@@ -105,7 +94,7 @@ def generate_sdf_samples(
     # Compared with uniform sampling from [depth_min, d_max],
     # stratified sampling ensures coverage of free space.
 
-    d_max = depth_samples_valid - surface_margin  # (num_valid_rays,)
+    d_max = depth_samples_main - surface_margin  # (num_rays_main,)
     # Ensure d_max > d_min
     d_max = torch.where(d_max <= depth_min, depth_min + surface_margin, d_max)
 
@@ -135,22 +124,22 @@ def generate_sdf_samples(
     # 2. Gaussian sampling (vectorized) - perturbation by depth #
     #############################################################
     gaussian_depths = torch.normal(  # (num_valid_rays, n_perturbed)
-        mean=depth_samples_valid.cpu().unsqueeze(1).expand(-1, n_perturbed), std=sigma_s
+        mean=depth_samples_main.cpu().unsqueeze(1).expand(-1, n_perturbed), std=sigma_s
     ).to(device)
     # Truncate Gaussian samples to within 2*std
     truncation_range = 2 * sigma_s
     gaussian_depths = torch.clamp(
         gaussian_depths,
-        min=depth_samples_valid.unsqueeze(1) - truncation_range,
-        max=depth_samples_valid.unsqueeze(1) + truncation_range,
+        min=depth_samples_main.unsqueeze(1) - truncation_range,
+        max=depth_samples_main.unsqueeze(1) + truncation_range,
     )
     # Record positive perturbations
-    gaussian_positive_mask = gaussian_depths > depth_samples_valid.unsqueeze(1)  # (num_valid_rays, n_perturbed)
+    gaussian_positive_mask = gaussian_depths > depth_samples_main.unsqueeze(1)  # (num_valid_rays, n_perturbed)
 
     ######################
     # 3. Surface samples #
     ######################
-    surface_samples = depth_samples_valid.unsqueeze(1)  # (num_valid_rays, 1)
+    surface_samples = depth_samples_main.unsqueeze(1)  # (num_valid_rays, 1)
 
     #######################
     # Combine all samples #
@@ -179,12 +168,16 @@ def generate_sdf_samples(
 
     # Calculate 3D coordinates (vectorized)
     # (num_valid_rays, 1, 3) + (num_valid_rays, total_samples, 1) * (num_valid_rays, 1, 3)
-    sampled_xyz = rays_o_valid.unsqueeze(1) + all_depths.unsqueeze(2) * rays_d_valid.unsqueeze(1)
+    sampled_xyz = rays_o_main.unsqueeze(1) + all_depths.unsqueeze(2) * rays_d_main.unsqueeze(1)
+    # Concatenate all surface points for SDF calculation
+    surface_xyz = torch.cat([sampled_xyz[:, -1], extra_surface_xyz], dim=0)
 
     sdf = nearest_neighbor(
         src=sampled_xyz[:, :-1].contiguous().view(-1, 3),
-        dst=sampled_xyz[:, -1].contiguous().view(-1, 3) if extra_surface_pcd is None else extra_surface_pcd.to(device),
-    )[0].view(num_valid_rays, -1)
+        dst=surface_xyz.contiguous().view(-1, 3),
+    )[
+        0
+    ].view(num_valid_rays, -1)
     stratified_sdf = sdf[:, :n_stratified].view(num_valid_rays, n_stratified)
     perturbation_sdf = sdf[:, n_stratified : n_stratified + n_perturbed].view(num_valid_rays, n_perturbed)
     perturbation_sdf = torch.where(gaussian_positive_mask, -perturbation_sdf, perturbation_sdf)
@@ -193,7 +186,7 @@ def generate_sdf_samples(
         sampled_xyz=sampled_xyz,
         positive_sdf_mask=positive_sdf_mask,
         negative_sdf_mask=negative_sdf_mask,
-        valid_indices=valid_indices,
+        valid_indices=torch.arange(num_valid_rays, device=device),
         stratified_sdf=stratified_sdf,
         perturbation_sdf=perturbation_sdf,
         n_stratified=n_stratified,

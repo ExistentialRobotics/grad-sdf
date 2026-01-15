@@ -70,7 +70,7 @@ class Trainer:
         self.timer_octree_insert = GpuTimer("octree insert", enable=timer_on, verbose=verbose)
         self.timer_key_frame_set_update = GpuTimer("key frame set update", enable=timer_on, verbose=verbose)
         self.timer_train_frame = GpuTimer("train with frame", enable=timer_on, verbose=verbose)
-        self.timer_select_key_frames = GpuTimer("select key frames", enable=timer_on, verbose=verbose)
+        self.timer_select_near_voxel_indices = GpuTimer("select near voxel indices", enable=timer_on, verbose=verbose)
         self.timer_sample_rays = GpuTimer("sample rays", enable=timer_on, verbose=verbose)
         self.timer_generate_sdf_samples = GpuTimer("generate sdf samples", enable=timer_on, verbose=verbose)
         self.timer_compute_offset_points = GpuTimer("compute offset points", enable=timer_on, verbose=verbose)
@@ -117,9 +117,10 @@ class Trainer:
             points = frame.get_points(to_world_frame=True, device=self.cfg.device)
 
             with self.timer_octree_insert:
-                _, seen_voxels = self.insert_points_to_octree(points)
-                voxel_indices = self.model.octree.find_voxel_indices(points.view(-1, 3), are_voxels=False)
-                self.sample_table.add_observation(frame=frame, voxel_indices=voxel_indices)
+                _, _, points_valid, point_voxel_indices = self.insert_points_to_octree(points)
+                self.sample_table.add_observation(
+                    frame=frame, points_valid=points_valid, point_voxel_indices=point_voxel_indices
+                )
                 print(f"frame {frame_id} added to sample table")
 
             # with self.timer_key_frame_set_update:
@@ -159,8 +160,8 @@ class Trainer:
 
     @torch.no_grad()
     def insert_points_to_octree(self, points: torch.Tensor):
-        voxels, seen_voxels = self.model.octree.insert_points(points)
-        return voxels, seen_voxels
+        voxels, seen_voxels, points_valid, point_voxel_indices = self.model.octree.insert_points(points)
+        return voxels, seen_voxels, points_valid, point_voxel_indices
 
     @torch.no_grad()
     def find_voxel_indices(self, points: torch.Tensor):
@@ -192,56 +193,44 @@ class Trainer:
             if not self.training_frame_start_callback(self, frame):
                 return False  # exit training
 
-        # with self.timer_select_key_frames:
-        #     self.selected_key_frame_indices = self.key_frame_set.select_key_frames()
-        # with self.timer_sample_rays:
-        #     rays_o_all, rays_d_all, depth_samples_all = self.key_frame_set.sample_rays(
-        #         num_samples=self.cfg.num_rays_total,
-        #         key_frame_indices=self.selected_key_frame_indices,
-        #         current_frame=frame,
-        #     )
-        #     rays_o_all = rays_o_all.to(self.cfg.device)
-        #     rays_d_all = rays_d_all.to(self.cfg.device)
-        #     depth_samples_all = depth_samples_all.to(self.cfg.device)
-        ray_origin = frame.get_ref_translation().to(self.cfg.device)
-        # 直接从 octree 中筛选离 ray_origin 近的 voxel indices（不依赖当前帧点云/扫描）
-        range_limits = torch.tensor([8.0, 10.0, 30.0], device=self.cfg.device)
+        with self.timer_select_near_voxel_indices:
+            ray_origin = frame.get_ref_translation().to(self.cfg.device)
+            range_limits = torch.tensor([15.0, 15.0, 30.0], device=self.cfg.device)
 
-        # 过滤未初始化/无效的 voxel（通常 voxel_size==0 表示未被插入）
-        valid_voxel_mask = self.model.octree.voxels[:, -1] > 0  # (N_voxels,)
-        valid_voxel_indices = torch.nonzero(valid_voxel_mask, as_tuple=False).view(-1).long()
+            valid_voxel_mask = self.model.octree.voxels[:, -1] > 0  # (N_voxels,)
+            valid_voxel_indices = torch.nonzero(valid_voxel_mask, as_tuple=False).view(-1).long()
 
-        valid_centers = self.model.octree.voxel_centers[valid_voxel_indices]  # (N_valid, 3)
-        voxel_size = self.model.octree.voxels[valid_voxel_indices, -1]
-        size_mask = voxel_size == 1
-        dist = torch.abs(valid_centers - ray_origin.view(1, 3))  # (N_valid, 3)
-        dist_mask = (dist < range_limits.view(1, 3)).all(dim=-1)
-        near_voxel_indices = valid_voxel_indices[dist_mask & size_mask]
-        print(f"near_voxel_indices.shape: {near_voxel_indices.shape}")
+            valid_centers = self.model.octree.voxel_centers[valid_voxel_indices]  # (N_valid, 3)
+            voxel_size = self.model.octree.voxels[valid_voxel_indices, -1]
+            size_mask = voxel_size == 1
+            dist = torch.abs(valid_centers - ray_origin.view(1, 3))  # (N_valid, 3)
+            dist_mask = (dist < range_limits.view(1, 3)).all(dim=-1)
+            near_voxel_indices = valid_voxel_indices[dist_mask & size_mask]
+            print(f"near_voxel_indices.shape: {near_voxel_indices.shape}")
+
         with self.timer_sample_rays:
-            rays_o_all, rays_d_all, depth_samples_all = self.sample_table.sample_rays(
-                num_samples=self.cfg.num_rays_total,
-                main_voxel_indices=near_voxel_indices,
-                main_ratio=0.7,
+            main_rays_o, main_rays_d, main_depth, extra_rays_o, extra_rays_d, extra_depth = (
+                self.sample_table.sample_rays(
+                    num_samples=self.cfg.num_rays_total,
+                    main_voxel_indices=near_voxel_indices,
+                )
             )
-            rays_o_all = rays_o_all.to(self.cfg.device)
-            rays_d_all = rays_d_all.to(self.cfg.device)
-            depth_samples_all = depth_samples_all.to(self.cfg.device)
-
-            # if self.cfg.extra_surface_sample:
-            #     self.extra_surface_pcd = self.key_frame_set.sample_points(
-            #         ratio=1.0 / self.cfg.frame_downsample,
-            #         key_frame_indices=self.selected_key_frame_indices,
-            #         current_frame=frame,
-            #     )
+            main_rays_o = main_rays_o.to(self.cfg.device)
+            main_rays_d = main_rays_d.to(self.cfg.device)
+            main_depth = main_depth.to(self.cfg.device)
+            extra_rays_o = extra_rays_o.to(self.cfg.device)
+            extra_rays_d = extra_rays_d.to(self.cfg.device)
+            extra_depth = extra_depth.to(self.cfg.device)
 
         with self.timer_generate_sdf_samples:
             self.samples = generate_sdf_samples(
-                rays_d_all=rays_d_all,
-                rays_o_all=rays_o_all,
-                depth_samples_all=depth_samples_all,
+                rays_d_main=main_rays_d,
+                rays_o_main=main_rays_o,
+                depth_samples_main=main_depth,
+                rays_d_extra=extra_rays_d,
+                rays_o_extra=extra_rays_o,
+                depth_samples_extra=extra_depth,
                 cfg=self.cfg.sample_rays,
-                extra_surface_pcd=self.extra_surface_pcd,
                 device=self.cfg.device,
             )
 
@@ -407,8 +396,8 @@ class Trainer:
         time_stats = {
             "train_frame": self.timer_train_frame.average_t,
             "octree_insert": self.timer_octree_insert.average_t,
-            "key_frame_set_update": self.timer_key_frame_set_update.average_t,
-            "select_key_frames": self.timer_select_key_frames.average_t,
+            # "key_frame_set_update": self.timer_key_frame_set_update.average_t,
+            # "select_key_frames": self.timer_select_key_frames.average_t,
             "sample_rays": self.timer_sample_rays.average_t,
             "generate_sdf_samples": self.timer_generate_sdf_samples.average_t,
             "compute_offset_points": self.timer_compute_offset_points.average_t,
@@ -496,6 +485,10 @@ class Trainer:
                         img_path = os.path.join(self.logger.misc_dir, img_path)
                     plt.savefig(img_path, dpi=300)
                     plt.close()
+
+        if self.cfg.save_table_diagram:
+            table_diagram = self.sample_table.draw_table_diagram()
+            self.logger.log_rgb(table_diagram, "table_diagram.png")
 
         self.logger.info("Evaluation completed.")
 

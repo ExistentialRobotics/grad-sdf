@@ -70,7 +70,7 @@ class SemiSparseOctreeBase(torch.nn.Module, ABC):
         pass
 
     @torch.no_grad()
-    def insert_points(self, points: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    def insert_points(self, points: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Inserts points into the octree.
         Args:
@@ -78,9 +78,19 @@ class SemiSparseOctreeBase(torch.nn.Module, ABC):
         Returns:
             voxels_unique: (n_unique, 3) unique voxel coordinates inserted
             voxel_indices: (n_unique,) index of the voxel for each voxel, on CPU.
+            points_valid: (n_valid_points, 3) points that fall into valid voxels (count > insertion_threshold)
+            point_voxel_indices: (n_valid_points,) voxel index for each point in points_valid, on CPU.
         """
         voxels = self.points_to_voxels(points)  # (n_points, 3) voxel coordinates
-        voxels_unique = torch.unique(voxels, dim=0)  # (n_unique, 3) of grid coordinates
+        voxels_raw, inverse, counts = torch.unique(voxels, dim=0, return_inverse=True, return_counts=True)
+        valid_raw_mask = counts > self.cfg.insertion_threshold  # (n_raw,)
+        voxels_unique = voxels_raw[valid_raw_mask]  # (n_unique, 3) of grid coordinates
+
+        # select points in valid voxels
+        valid_point_mask = valid_raw_mask[inverse]  # (n_points,)
+        points_valid = points[valid_point_mask]  # (n_valid_points, 3)
+        inverse_valid = inverse[valid_point_mask]  # (n_valid_points,)
+
         if self.cfg.skip_insertion_if_exists and self.ever_inserted:
             device = self.sdf_priors.device
             voxel_indices = self.find_voxel_indices(voxels_unique.to(device), True)  # (n_unique,)
@@ -89,7 +99,20 @@ class SemiSparseOctreeBase(torch.nn.Module, ABC):
             voxel_indices[mask] = self.insert_voxels(voxels_unique[mask]).to(device)
         else:
             voxel_indices = self.insert_voxels(voxels_unique)
-        return voxels_unique, voxel_indices.cpu()
+
+        # map each valid point to its voxel index (based on voxels_raw -> voxels_unique)
+        remap = torch.full((voxels_raw.shape[0],), -1, dtype=torch.long, device=voxels_raw.device)  # (n_raw,)
+        remap[valid_raw_mask] = torch.arange(voxels_unique.shape[0], device=voxels_raw.device, dtype=torch.long)
+        point_voxel_unique_idx = remap[inverse_valid]  # (n_valid_points,)
+        # NOTE: derived implementations may return voxel_indices on CPU (e.g. inserting via a CPU octree backend),
+        # while point_voxel_unique_idx lives on the same device as points/voxels (often GPU). Align devices before indexing.
+        if voxel_indices.device != point_voxel_unique_idx.device:
+            voxel_indices_for_index = voxel_indices.to(point_voxel_unique_idx.device)
+        else:
+            voxel_indices_for_index = voxel_indices
+        point_voxel_indices = voxel_indices_for_index[point_voxel_unique_idx]  # (n_valid_points,)
+
+        return voxels_unique, voxel_indices.cpu(), points_valid, point_voxel_indices.cpu()
 
     @torch.no_grad()
     def get_voxel_discrete_size(self, voxel_indices: torch.Tensor) -> torch.Tensor:

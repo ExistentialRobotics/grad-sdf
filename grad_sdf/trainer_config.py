@@ -39,6 +39,7 @@ class TrainerConfig(ConfigABC):
     mesh_iso_value: float = 0.0
     clean_mesh: bool = True
     save_slice: bool = True
+    save_table_diagram: bool = True
     slice_center: Optional[list] = None  # if None, use the center of the scene bounding box
     ckpt_interval: int = -1  # interval to save checkpoints, -1 means no intermediate checkpoints
     profiling: bool = False

@@ -8,8 +8,8 @@ data:
     dataset_name: newercollege
     dataset_args:
         data_path: "data/newercollege-lidar-rotated"
-        min_depth: 0.0
-        max_depth: -1.0
+        min_depth: 0.6
+        max_depth: 40.0
         offset: [0.0, 0.0, 0.0]
         bound_min:
         bound_max:
@@ -25,10 +25,11 @@ key_frame_set:
     frame_weight: uniform
 sample_table:
     identifier: grad_sdf.sample_table.SampleTableConfig
-    pts_per_voxel: 100
-    surface_voxel_num: 100000
+    pts_per_voxel: 200
+    surface_voxel_num: 50000
     device: cuda
     frames_num: 1988
+    extra_ratio: 0.2
 model:
     identifier: grad_sdf.model.SdfNetworkConfig
     octree_cfg:
@@ -81,15 +82,16 @@ sample_rays:
     n_stratified: 1
     n_perturbed: 2
     depth_min: 0.6
-    depth_max: -1.0
-    surface_margin: 0.37
+    depth_max: 40.0
+    surface_margin: 0.7
     sigma_s: 0.36
 batch_size: 204800
-lr: 0.005
+lr: 0.01
 grad_method: finite_difference
-finite_difference_eps: 0.03
+finite_difference_eps: 0.1
 final_iterations: 0
 save_mesh: true
+save_table_diagram: true
 mesh_resolution: 0.2
 mesh_iso_value: 0.0
 clean_mesh: true

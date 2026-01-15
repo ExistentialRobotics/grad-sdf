@@ -28,7 +28,7 @@ class GuiBaseConfig(ConfigABC):
     view_option: str = "follow"  # follow, keyboard, from_file
     view_file: Optional[str] = None
 
-    # scan, traj, kf_cams, current_cam, octree, sdf, sdf_prior, sdf_residual, mesh, mesh_prior,
+    # scan, traj, current_cam, octree, sdf, sdf_prior, sdf_residual, mesh, mesh_prior,
     # gt_mesh, sample_surf, sample_perturb, sample_free, sample_extra
     objects: list = field(default_factory=lambda: ["scan", "traj", "current_camera", "sdf"])
 
@@ -50,8 +50,6 @@ class GuiBaseConfig(ConfigABC):
     camera_line_width: int = 3
     camera_size: float = 1.0
     camera_color_current: list = field(default_factory=lambda: [0.0, 1.0, 0.0])
-    camera_color_key_frame: list = field(default_factory=lambda: [0.0, 0.0, 1.0])
-    camera_color_selected_key_frame: list = field(default_factory=lambda: [1.0, 0.5, 0.0])
 
     octree_update_freq: int = 20
     octree_min_size: int = 1
@@ -127,8 +125,6 @@ class GuiDataPacket:
     frame_idx: int = -1  # current frame index
     frame_pose: Optional[np.ndarray] = None  # used to build trajectory
     scan_points: Optional[np.ndarray] = None  # (N, 3) point cloud of the scan
-    key_frame_indices: Optional[list] = None  # indices of key frames
-    selected_key_frame_indices: Optional[list] = None  # indices of selected key frames
 
     flag_samples_updated: bool = False  # whether the samples have been updated
     sampled_xyz: Optional[np.ndarray] = None  # (M, 3) array of sampled points
@@ -509,8 +505,6 @@ class GuiBase:
             self.checked_objects.add("scan")
         if self.checkbox_show_traj.checked:
             self.checked_objects.add("traj")
-        if self.checkbox_show_kf_cams.checked:
-            self.checked_objects.add("kf_cams")
         if self.checkbox_show_curr_cam.checked:
             self.checked_objects.add("curr_cam")
         if self.checkbox_show_octree.checked:
@@ -592,12 +586,6 @@ class GuiBase:
         self.sample_render.shader = "defaultLit"
         self.sample_render.point_size = self.cfg.sample_point_size * self.window.scaling
 
-        # key frame cameras
-        self.kf_cams_name = "key_frame_cams"
-        self.kf_cams_render = o3d_rendering.MaterialRecord()
-        self.kf_cams_render.shader = "unlitLine"
-        self.kf_cams_render.line_width = self.cfg.camera_line_width * self.window.scaling
-
         # current camera
         self.curr_cam_name = "current_cam"
         self.curr_cam_render = o3d_rendering.MaterialRecord()
@@ -644,7 +632,6 @@ class GuiBase:
         self.sample_perturbed = o3d.geometry.PointCloud()
         self.sample_free = o3d.geometry.PointCloud()
         self.sample_extra = o3d.geometry.PointCloud()
-        self.kf_cams = o3d.geometry.LineSet()
         self.curr_cam = o3d.geometry.LineSet()
         self.curr_cam_axis = o3d.geometry.TriangleMesh.create_coordinate_frame(
             size=0.5 * self.cfg.camera_size, origin=[0, 0, 0]
@@ -776,17 +763,6 @@ class GuiBase:
         self.checkbox_show_traj.checked = ("trajectory" in init_objects) or ("traj" in init_objects)
         self.checkbox_show_traj.set_on_checked(self._on_checkbox_show_traj)
         object_options_line1.add_child(self.checkbox_show_traj)
-
-        self.checkbox_show_kf_cams = o3d_gui.Checkbox("KF Cams")
-        self.checkbox_show_kf_cams.checked = (
-            ("key_frame_cams" in init_objects)
-            or ("key_frame_cam" in init_objects)
-            or ("key_frame_cameras" in init_objects)
-            or ("key_frame_camera" in init_objects)
-            or ("kf_cams" in init_objects)
-        )
-        self.checkbox_show_kf_cams.set_on_checked(self._on_checkbox_show_kf_cams)
-        object_options_line1.add_child(self.checkbox_show_kf_cams)
 
         self.checkbox_show_curr_cam = o3d_gui.Checkbox("Current Cam")
         self.checkbox_show_curr_cam.checked = (
@@ -1018,27 +994,11 @@ class GuiBase:
         self.color_edit_camera_color_current.set_on_value_changed(self._on_color_edit_camera_color_current)
         camera_color_current_line.add_child(self.color_edit_camera_color_current)
 
-        camera_color_kf_line = o3d_gui.Horiz(spacing=sp)
-        camera_color_kf_line.add_child(o3d_gui.Label("Key Frame Camera Color:"))
-        self.color_edit_camera_color_kf = o3d_gui.ColorEdit()
-        self.color_edit_camera_color_kf.color_value.set_color(*self.cfg.camera_color_key_frame)
-        self.color_edit_camera_color_kf.set_on_value_changed(self._on_color_edit_camera_color_kf)
-        camera_color_kf_line.add_child(self.color_edit_camera_color_kf)
-
-        camera_color_selected_kf_line = o3d_gui.Horiz(spacing=sp)
-        camera_color_selected_kf_line.add_child(o3d_gui.Label("Selected Key Frame Camera Color:"))
-        self.color_edit_camera_color_selected_kf = o3d_gui.ColorEdit()
-        self.color_edit_camera_color_selected_kf.color_value.set_color(*self.cfg.camera_color_selected_key_frame)
-        self.color_edit_camera_color_selected_kf.set_on_value_changed(self._on_color_edit_camera_color_selected_kf)
-        camera_color_selected_kf_line.add_child(self.color_edit_camera_color_selected_kf)
-
         self.panel.add_child(
             self._create_collapsable_vert(
                 camera_line_width_line,
                 camera_size_line,
                 camera_color_current_line,
-                camera_color_kf_line,
-                camera_color_selected_kf_line,
                 title="Camera Rendering Options",
                 sp=sp,
                 is_open=False,
@@ -1098,7 +1058,7 @@ class GuiBase:
         mesh_resolution_line = o3d_gui.Horiz(spacing=sp)
         mesh_resolution_line.add_child(o3d_gui.Label("Mesh Resolution (#voxels per meter):"))
         self.slider_mesh_resolution = o3d_gui.Slider(o3d_gui.Slider.INT)
-        self.slider_mesh_resolution.set_limits(10, 110)
+        self.slider_mesh_resolution.set_limits(1, 110)
         self.slider_mesh_resolution.int_value = self.cfg.mesh_resolution
         mesh_resolution_line.add_child(self.slider_mesh_resolution)
 
@@ -1267,8 +1227,6 @@ class GuiBase:
         tab_info.add_child(self.label_info_gpu_mem)
         self.label_info_num_iterations = o3d_gui.Label("Num Iterations:")
         tab_info.add_child(self.label_info_num_iterations)
-        self.label_info_num_key_frames = o3d_gui.Label("Num Key Frames:")
-        tab_info.add_child(self.label_info_num_key_frames)
         self.label_info_training_fps = o3d_gui.Label("Training FPS:")
         tab_info.add_child(self.label_info_training_fps)
         self.label_info_gui_fps = o3d_gui.Label("GUI FPS:")
@@ -1395,15 +1353,6 @@ class GuiBase:
         if self.data_packet.flag_new_frame:
             return  # will be handled soon
         self.visualize_trajectory()
-
-    def _on_checkbox_show_kf_cams(self, is_checked: bool) -> None:
-        if is_checked:
-            tqdm.write("[GUI] Show key frame cameras.")
-        else:
-            tqdm.write("[GUI] Hide key frame cameras.")
-        if self.data_packet.flag_new_frame:
-            return  # will be handled soon
-        self.visualize_kf_cams()
 
     def _on_checkbox_show_curr_cam(self, is_checked: bool) -> None:
         if is_checked:
@@ -1612,11 +1561,9 @@ class GuiBase:
     def _on_slider_camera_line_width(self, line_width: int) -> None:
         self.cfg.camera_line_width = line_width
         self.curr_cam_render.line_width = line_width * self.window.scaling
-        self.kf_cams_render.line_width = line_width * self.window.scaling
         if self.data_packet.flag_new_frame:
             return  # will be handled soon
         self.visualize_curr_cam()
-        self.visualize_kf_cams()
 
     def _on_slider_camera_size(self, size: float) -> None:
         r = size / self.cfg.camera_size
@@ -1625,11 +1572,6 @@ class GuiBase:
         if self.data_packet.flag_new_frame:
             return  # will be handled soon
         self.visualize_curr_cam(self.data_packet.frame_pose)
-        self.kf_cams.clear()
-        self.visualize_kf_cams(
-            self.data_packet.key_frame_indices,
-            self.data_packet.selected_key_frame_indices,
-        )
 
     def _on_color_edit_camera_color_current(self, color: o3d_gui.Color) -> None:
         red = color.red.real
@@ -1640,30 +1582,6 @@ class GuiBase:
             return  # will be handled soon
         self.curr_cam.paint_uniform_color([red, green, blue])
         self.visualize_curr_cam()
-
-    def _on_color_edit_camera_color_kf(self, color: o3d_gui.Color) -> None:
-        red = color.red.real
-        green = color.green.real
-        blue = color.blue.real
-        self.cfg.camera_color_key_frame = [red, green, blue]
-        if self.data_packet.flag_new_frame:
-            return  # will be handled soon
-        self.visualize_kf_cams(
-            self.data_packet.key_frame_indices,
-            self.data_packet.selected_key_frame_indices,
-        )
-
-    def _on_color_edit_camera_color_selected_kf(self, color: o3d_gui.Color) -> None:
-        red = color.red.real
-        green = color.green.real
-        blue = color.blue.real
-        self.cfg.camera_color_selected_key_frame = [red, green, blue]
-        if self.data_packet.flag_new_frame:
-            return  # will be handled soon
-        self.visualize_kf_cams(
-            self.data_packet.key_frame_indices,
-            self.data_packet.selected_key_frame_indices,
-        )
 
     def _on_slider_octree_line_width(self, line_width: int) -> None:
         self.cfg.octree_line_width = line_width
@@ -2055,34 +1973,6 @@ class GuiBase:
 
         self.widget3d.scene.show_geometry(name, show)
 
-    def visualize_kf_cams(self, key_frame_indices: list = None, selected_key_frame_indices: list = None):
-        if key_frame_indices is not None and selected_key_frame_indices is not None:
-            n = len(key_frame_indices) * len(self.org_cam.points)
-            if len(self.kf_cams.points) < n:  # need to add more cameras
-                existing_kf_count = len(self.kf_cams.points) // len(self.org_cam.points)
-                for idx in key_frame_indices[existing_kf_count:]:
-                    pose = self.frame_poses[idx]
-                    points = np.asarray(self.org_cam.points)
-                    points = points @ pose[:3, :3].T + pose[:3, [3]].T
-                    start_idx = len(self.kf_cams.points)
-                    self.kf_cams.points.extend(o3d.utility.Vector3dVector(points.astype(np.float64)))
-                    self.kf_cams.lines.extend(np.asarray(self.org_cam.lines) + start_idx)
-            self.kf_cams.paint_uniform_color(np.array(self.cfg.camera_color_key_frame, dtype=np.float64))
-            for idx in selected_key_frame_indices:
-                m = len(self.org_cam.lines)
-                for i in range(m * idx, m * (idx + 1)):
-                    self.kf_cams.colors[i] = np.array(self.cfg.camera_color_selected_key_frame, dtype=np.float64)
-
-        if not self.switch_vis.is_on or len(self.kf_cams.lines) == 0:
-            return
-
-        if self.checkbox_show_kf_cams.checked:
-            if self.widget3d.scene.has_geometry(self.kf_cams_name):
-                self.widget3d.scene.remove_geometry(self.kf_cams_name)
-            self.widget3d.scene.add_geometry(self.kf_cams_name, self.kf_cams, self.kf_cams_render)
-
-        self.widget3d.scene.show_geometry(self.kf_cams_name, self.checkbox_show_kf_cams.checked)
-
     def visualize_curr_cam(self, pose: np.ndarray = None):
         if pose is not None:  # update visualization only when new pose is given
             points = np.asarray(self.org_cam.points)
@@ -2313,8 +2203,9 @@ class GuiBase:
         extrinsics = np.array(view["extrinsics"])
         bounds = deepcopy(self.widget3d.scene.bounding_box)
         bounds = bounds.scale(1.2, bounds.get_center())
-        self.widget3d.setup_camera(intrinsics, extrinsics, self.widget3d_width, self.widget3d_height,
-                                   bounds)  # type: ignore
+        self.widget3d.setup_camera(
+            intrinsics, extrinsics, self.widget3d_width, self.widget3d_height, bounds
+        )  # type: ignore
 
     @classmethod
     def run(cls, *args, **kwargs):
@@ -2379,18 +2270,6 @@ class GuiBase:
 
                 if packet.mapping_end:
                     self.data_packet.mapping_end = True
-
-                if packet.flag_new_frame:
-                    self.data_packet.num_iterations = packet.num_iterations
-                    self.data_packet.flag_new_frame = True
-                    self.data_packet.frame_idx = packet.frame_idx
-                    self.data_packet.frame_pose = packet.frame_pose
-                    self.data_packet.scan_points = packet.scan_points
-                    self.data_packet.key_frame_indices = packet.key_frame_indices
-                    self.data_packet.selected_key_frame_indices = packet.selected_key_frame_indices
-
-                    self.frame_indices.append(packet.frame_idx)
-                    self.frame_poses.append(packet.frame_pose)
 
                 if packet.flag_samples_updated:
                     self.data_packet.flag_samples_updated = True
@@ -2471,19 +2350,12 @@ class GuiBase:
                 assert self.data_packet.frame_idx >= 0
                 assert self.data_packet.frame_pose is not None
                 assert self.data_packet.scan_points is not None
-                assert self.data_packet.key_frame_indices is not None
-                assert self.data_packet.selected_key_frame_indices is not None
 
                 self.visualize_scan(self.data_packet.scan_points)  # update scan
                 self.visualize_trajectory()  # update trajectory
                 self.visualize_curr_cam(self.data_packet.frame_pose)  # update current camera
-                self.visualize_kf_cams(
-                    self.data_packet.key_frame_indices,
-                    self.data_packet.selected_key_frame_indices,
-                )
 
                 self.label_info_num_iterations.text = f"Num Iterations: {self.data_packet.num_iterations}"
-                self.label_info_num_key_frames.text = f"Num Key Frames: {len(self.data_packet.key_frame_indices)}"
                 self.label_info_frame_idx.text = f"Frame: {self.data_packet.frame_idx}"
                 self.label_info_traj_length.text = f"Travel Distance: {self.traj_length:.3f} m"
 
@@ -2510,7 +2382,7 @@ class GuiBase:
                         self.sample_perturbed_name,
                         self.sample_perturbed,
                         self.checkbox_show_sample_perturbed.checked,
-                        self.data_packet.sampled_xyz[:, n_free: n_free + n_perturbed],
+                        self.data_packet.sampled_xyz[:, n_free : n_free + n_perturbed],
                         self.cfg.sample_color_perturbed,
                     )
                 if n_free > 0:

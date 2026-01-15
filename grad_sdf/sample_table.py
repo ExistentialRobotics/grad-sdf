@@ -11,6 +11,7 @@ class SampleTableConfig(ConfigABC):
     surface_voxel_num: int = 1000000
     device: str = "cuda"
     frames_num: int = 1988
+    extra_ratio: float = 0.25
 
 
 class SampleTable:
@@ -19,6 +20,7 @@ class SampleTable:
         self.surface_voxel_num = cfg.surface_voxel_num
         self.device = cfg.device
         self.frames_num = cfg.frames_num
+        self.extra_ratio = cfg.extra_ratio
         # table存储: [rays_d_world(3), depth(1), frame_idx(1)] = 5个值
         # self.table = torch.full(
         #     (self.surface_voxel_num, self.pts_per_voxel, 5), -1, dtype=torch.float32, device=cfg.device
@@ -38,39 +40,32 @@ class SampleTable:
         # 记录每个体素已填充的有效样本数（最多 pts_per_voxel）；voxel_counters 是“写指针”（会取模），不能当有效数量用
         self.voxel_filled_counts = torch.zeros(self.surface_voxel_num, dtype=torch.long, device=cfg.device)
 
-    def add_observation(self, frame: Frame, voxel_indices: torch.Tensor):
+    def add_observation(self, frame: Frame, points_valid: torch.Tensor, point_voxel_indices: torch.Tensor):
         """
         使用并行化方式将射线方向、深度和帧索引添加到采样表中
         超出长度后循环填充（从上次填充的位置继续）
 
         Args:
             frame: Frame对象
-            voxel_indices: 每个点对应的体素索引 (N,)，N是有效点的数量
+            points_valid: 有效点 (N, 3)
+            point_voxel_indices: 每个有效点对应的体素索引 (N,)
         """
 
         frame_idx = frame.get_frame_index()
+        device = self.device
 
-        # 获取相机坐标系下的射线方向 (H, W, 3)
-        rays_d_local = frame.get_rays_direction()
-        # 获取深度 (H, W)
-        depth = frame.get_depth()
-        # 获取有效点mask (H, W)
-        valid_mask = frame.get_valid_mask()
+        if points_valid.numel() == 0:
+            return
 
-        # 只取有效点
-        rays_d_local_valid = rays_d_local[valid_mask].to(self.device)  # (N, 3)
-        depth_valid = depth[valid_mask].to(self.device)  # (N,)
+        # 统一设备与 dtype
+        points_valid = points_valid.to(device=device, dtype=torch.float32).view(-1, 3)  # (N, 3)
+        voxel_indices = point_voxel_indices.to(device=device).long().view(-1)  # (N,)
 
-        # 将射线方向转换到世界坐标系（仅旋转，方向向量不需要平移）
-        rotation = frame.get_ref_rotation().to(self.device)  # (3, 3)
-        rays_d_world = rays_d_local_valid @ rotation.T  # (N, 3)
-        # 归一化射线方向
-        rays_d_world = rays_d_world / (torch.norm(rays_d_world, dim=-1, keepdim=True) + 1e-8)
-
-        # 检查体素索引是否超出范围
-        assert (
-            voxel_indices.max() < self.surface_voxel_num
-        ), f"Voxel index {voxel_indices.max().item()} exceeds table size {self.surface_voxel_num}"
+        # 由 world points + ray origin 计算 rays_d_world 和 depth
+        ray_origin = frame.get_ref_translation().to(device=device, dtype=torch.float32).view(1, 3)  # (1, 3)
+        ray_vec = points_valid - ray_origin  # (N, 3)
+        depth_valid = torch.norm(ray_vec, dim=-1)  # (N,)
+        rays_d_world = ray_vec / (depth_valid[:, None] + 1e-8)  # (N, 3)
 
         # 获取唯一的体素索引和每个体素的点数
         unique_voxels, inverse_indices, counts = torch.unique(voxel_indices, return_inverse=True, return_counts=True)
@@ -96,7 +91,7 @@ class SampleTable:
         self.table_frame_idx[voxel_indices, local_indices] = torch.tensor(
             frame_idx, dtype=self.table_frame_idx.dtype, device=self.device
         )  # 帧索引
-        self.table_ray_origin[frame_idx, :] = frame.get_ref_translation().to(
+        self.table_ray_origin[frame_idx, :] = ray_origin.to(
             device=self.device, dtype=self.table_ray_origin.dtype
         )  # 帧原点
 
@@ -112,7 +107,6 @@ class SampleTable:
         self,
         num_samples: int,
         main_voxel_indices: torch.Tensor,
-        main_ratio: float,
     ):
         """
         从采样表中采样射线，并返回对应的 rays 和 depth。
@@ -139,15 +133,12 @@ class SampleTable:
         valid_voxel_mask = self.voxel_filled_counts > 0  # (surface_voxel_num,)
         valid_voxel_indices = torch.nonzero(valid_voxel_mask, as_tuple=False).squeeze(-1).long()
 
-        main_sample_num = int(num_samples * main_ratio)
-
+        extra_sample_num = int(num_samples * self.extra_ratio)
         extra_valid_indices = valid_voxel_indices[~torch.isin(valid_voxel_indices, main_voxel_indices)]
+
         if extra_valid_indices.numel() == 0:
             print("no extra valid indices, use main voxel only")
             extra_sample_num = 0
-            main_sample_num = num_samples
-        else:
-            extra_sample_num = num_samples - main_sample_num
 
         def allocate_counts(voxels: torch.Tensor, total: int) -> tuple[torch.Tensor, torch.Tensor]:
             """
@@ -179,15 +170,10 @@ class SampleTable:
 
             voxel_ids = torch.repeat_interleave(voxels, counts)
 
-            # 生成 group-wise arange
-            # 思路：对 [0..total-1] 减去该 voxel 的起始 index
-            starts = torch.cumsum(counts, dim=0) - counts
-            starts = torch.repeat_interleave(starts, counts)
-
-            offsets = torch.arange(total, device=device) - starts
-
             filled = self.voxel_filled_counts[voxel_ids]
-            slot_ids = offsets % filled
+            # slot_ids = offsets % filled
+            rand_vals = torch.rand(total, device=device)
+            slot_ids = (rand_vals * filled).long()
 
             return (
                 self.table_rays_d[voxel_ids, slot_ids, :],
@@ -196,30 +182,95 @@ class SampleTable:
             )
 
         # 1) 主 voxel
-        main_sel, main_cnt = allocate_counts(main_voxel_indices, main_sample_num)
+        main_sel, main_cnt = allocate_counts(main_voxel_indices, num_samples)
         main_rays_d, main_depth, main_frame_idx = fill_samples(main_sel, main_cnt)
-
+        main_rays_o = self.table_ray_origin[main_frame_idx, :]
         # 2) 其它 voxel
         if extra_sample_num > 0:
             extra_sel, extra_cnt = allocate_counts(extra_valid_indices, extra_sample_num)
             extra_rays_d, extra_depth, extra_frame_idx = fill_samples(extra_sel, extra_cnt)
-
-            # 拼接 + 截断
-            rays_d = torch.cat([main_rays_d, extra_rays_d], dim=0)
-            depth = torch.cat([main_depth, extra_depth], dim=0)
-            frame_idx = torch.cat([main_frame_idx, extra_frame_idx], dim=0)
-
+            extra_rays_o = self.table_ray_origin[extra_frame_idx, :]
         else:
-            rays_d = main_rays_d
-            depth = main_depth
-            frame_idx = main_frame_idx
-        # 预先计算所有需要的相机位置（ray origin）
-        rays_o = self.table_ray_origin[frame_idx, :]
+            extra_rays_o = torch.empty((0, 3), dtype=torch.float16, device=device)
+            extra_rays_d = torch.empty((0, 3), dtype=torch.float16, device=device)
+            extra_depth = torch.empty((0,), dtype=torch.float32, device=device)
 
-        return rays_o, rays_d, depth
+        return (
+            main_rays_o,
+            main_rays_d,
+            main_depth,
+            extra_rays_o,
+            extra_rays_d,
+            extra_depth,
+        )
 
     def clear(self):
         """清空采样表和计数器"""
-        self.table.fill_(-1)
+        self.table_rays_d.fill_(-1)
+        self.table_depth.fill_(-1)
+        self.table_frame_idx.fill_(-1)
+        self.table_ray_origin.fill_(-1)
         self.voxel_counters.fill_(0)
         self.voxel_filled_counts.fill_(0)
+
+    def draw_table_diagram(self):
+        """
+        画每个 voxel 已存储的有效点数分布图（基于 voxel_filled_counts），并返回渲染后的 RGB 图像。
+
+        Returns:
+            np.ndarray: uint8 RGB 图像，shape=(H, W, 3)
+        """
+        import numpy as np
+
+        # 尽量避免交互式后端带来的无显示环境报错
+        import matplotlib
+
+        matplotlib.use("Agg", force=True)
+        import matplotlib.pyplot as plt
+
+        counts = self.voxel_filled_counts.detach()
+        counts_cpu = counts.to(device="cpu", dtype=torch.int32).numpy()
+
+        # bincount: x 轴为 [0..pts_per_voxel]，y 轴为该填充数对应的 voxel 数量
+        max_bin = int(self.pts_per_voxel)
+        hist = np.bincount(counts_cpu.astype(np.int64), minlength=max_bin + 1)
+        xs = np.arange(max_bin + 1)
+
+        num_voxels = int(counts_cpu.size)
+        num_active = int((counts_cpu > 0).sum())
+        mean_active = float(counts_cpu[counts_cpu > 0].mean()) if num_active > 0 else 0.0
+        max_filled = int(counts_cpu.max()) if num_voxels > 0 else 0
+
+        fig, axes = plt.subplots(1, 2, figsize=(12, 4), dpi=150)
+
+        axes[0].bar(xs, hist, width=0.9)
+        axes[0].set_title("voxel filled counts (incl. empty)")
+        axes[0].set_xlabel("#points in voxel")
+        axes[0].set_ylabel("#voxels")
+        axes[0].set_yscale("log")
+        axes[0].grid(True, which="both", alpha=0.2)
+
+        if max_bin >= 1:
+            axes[1].bar(xs[1:], hist[1:], width=0.9)
+        else:
+            axes[1].bar(xs, hist, width=0.9)
+        axes[1].set_title("active voxels (count > 0)")
+        axes[1].set_xlabel("#points in voxel")
+        axes[1].set_ylabel("#voxels")
+        axes[1].set_yscale("log")
+        axes[1].grid(True, which="both", alpha=0.2)
+
+        fig.suptitle(
+            f"SampleTable voxel stats | active={num_active}/{num_voxels} "
+            f"({(num_active / max(num_voxels, 1)):.2%}), mean(active)={mean_active:.2f}, max={max_filled}",
+            y=1.02,
+            fontsize=10,
+        )
+
+        fig.canvas.draw()
+        w, h = fig.canvas.get_width_height()
+        buf = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8)
+        rgba = buf.reshape(h, w, 4)
+        rgb = rgba[:, :, :3].copy()
+        plt.close(fig)
+        return rgb
