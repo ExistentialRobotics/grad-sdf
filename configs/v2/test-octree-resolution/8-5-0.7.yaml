@@ -16,7 +16,7 @@ model:
         tree_depth: 8 # 0.7*256=179.2m
         semi_sparse_depth: 4
         init_voxel_num: 50000
-        insertion_threshold: 8
+        insertion_threshold: 20
         skip_insertion_if_exists: true # speed up a bit
         # gradient_augmentation: true
 sample_table:
@@ -25,3 +25,4 @@ sample_table:
     surface_voxel_num: 50000
     device: cuda
     frames_num: 1988
+    extra_ratio: 0.0

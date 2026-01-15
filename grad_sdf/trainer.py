@@ -194,25 +194,31 @@ class Trainer:
                 return False  # exit training
 
         with self.timer_select_near_voxel_indices:
-            ray_origin = frame.get_ref_translation().to(self.cfg.device)
-            range_limits = torch.tensor([15.0, 15.0, 30.0], device=self.cfg.device)
+            # ray_origin = frame.get_ref_translation().to(self.cfg.device)
+            # range_limits = torch.tensor([15.0, 15.0, 30.0], device=self.cfg.device)
+
+            # valid_voxel_mask = self.model.octree.voxels[:, -1] > 0  # (N_voxels,)
+            # valid_voxel_indices = torch.nonzero(valid_voxel_mask, as_tuple=False).view(-1).long()
+
+            # valid_centers = self.model.octree.voxel_centers[valid_voxel_indices]  # (N_valid, 3)
+            # voxel_size = self.model.octree.voxels[valid_voxel_indices, -1]
+            # size_mask = voxel_size == 1
+            # dist = torch.abs(valid_centers - ray_origin.view(1, 3))  # (N_valid, 3)
+            # dist_mask = (dist < range_limits.view(1, 3)).all(dim=-1)
+            # near_voxel_indices = valid_voxel_indices[dist_mask & size_mask]
+            # print(f"near_voxel_indices.shape: {near_voxel_indices.shape}")
 
             valid_voxel_mask = self.model.octree.voxels[:, -1] > 0  # (N_voxels,)
             valid_voxel_indices = torch.nonzero(valid_voxel_mask, as_tuple=False).view(-1).long()
-
-            valid_centers = self.model.octree.voxel_centers[valid_voxel_indices]  # (N_valid, 3)
             voxel_size = self.model.octree.voxels[valid_voxel_indices, -1]
             size_mask = voxel_size == 1
-            dist = torch.abs(valid_centers - ray_origin.view(1, 3))  # (N_valid, 3)
-            dist_mask = (dist < range_limits.view(1, 3)).all(dim=-1)
-            near_voxel_indices = valid_voxel_indices[dist_mask & size_mask]
-            print(f"near_voxel_indices.shape: {near_voxel_indices.shape}")
+            valid_voxel_indices = valid_voxel_indices[size_mask]
 
         with self.timer_sample_rays:
             main_rays_o, main_rays_d, main_depth, extra_rays_o, extra_rays_d, extra_depth = (
                 self.sample_table.sample_rays(
                     num_samples=self.cfg.num_rays_total,
-                    main_voxel_indices=near_voxel_indices,
+                    main_voxel_indices=valid_voxel_indices,
                 )
             )
             main_rays_o = main_rays_o.to(self.cfg.device)
