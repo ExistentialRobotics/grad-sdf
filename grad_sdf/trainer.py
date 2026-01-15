@@ -56,6 +56,8 @@ class Trainer:
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.cfg.lr)
         self.criterion = Criterion(
             cfg=self.cfg.criterion,
+            frames_num=self.cfg.sample_table.frames_num,
+            num_valid_rays=self.cfg.num_rays_total,
             n_stratified=self.cfg.sample_rays.n_stratified,
             n_perturbed=self.cfg.sample_rays.n_perturbed,
         )
@@ -144,7 +146,8 @@ class Trainer:
         self.logger.info("Training completed.")
         if self.training_end_callback is not None:
             self.training_end_callback(self)
-
+        loss_distribution_image = self.criterion.visualize_loss_table(n_frames=5)
+        self.logger.log_rgb(loss_distribution_image, "loss_distribution.png")
         self.evaluate()
         self.save_model("final.pth")
 
@@ -307,6 +310,7 @@ class Trainer:
                         pred_grad=sdf_grad_all,
                         gt_sdf_perturb=self.samples.perturbation_sdf,
                         gt_sdf_stratified=self.samples.stratified_sdf,
+                        frames_idx=frame.get_frame_index(),
                     )
                     loss.backward()
                     self.optimizer.step()

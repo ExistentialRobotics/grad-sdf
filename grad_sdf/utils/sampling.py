@@ -173,13 +173,13 @@ def generate_sdf_samples(
     surface_xyz = torch.cat([sampled_xyz[:, -1], extra_surface_xyz], dim=0)
 
     sdf = nearest_neighbor(
-        src=sampled_xyz[:, :-1].contiguous().view(-1, 3),
+        src=sampled_xyz[:,:n_stratified + n_perturbed, :].contiguous().view(-1, 3),
         dst=surface_xyz.contiguous().view(-1, 3),
     )[
         0
     ].view(num_valid_rays, -1)
     stratified_sdf = sdf[:, :n_stratified].view(num_valid_rays, n_stratified)
-    perturbation_sdf = sdf[:, n_stratified : n_stratified + n_perturbed].view(num_valid_rays, n_perturbed)
+    perturbation_sdf = sdf[:, n_stratified:].view(num_valid_rays, n_perturbed)
     perturbation_sdf = torch.where(gaussian_positive_mask, -perturbation_sdf, perturbation_sdf)
 
     return SampleResults(

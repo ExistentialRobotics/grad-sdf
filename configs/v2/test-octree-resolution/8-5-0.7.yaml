@@ -16,7 +16,7 @@ model:
         tree_depth: 8 # 0.7*256=179.2m
         semi_sparse_depth: 4
         init_voxel_num: 50000
-        insertion_threshold: 20
+        insertion_threshold: 8
         skip_insertion_if_exists: true # speed up a bit
         # gradient_augmentation: true
 sample_table:
@@ -26,3 +26,9 @@ sample_table:
     device: cuda
     frames_num: 1988
     extra_ratio: 0.0
+criterion:
+    reconstruction_loss_threshold: 0.1
+    perturbation_loss_threshold: 0.2
+    eikonal_loss_surface_threshold: 1.0
+    eikonal_loss_space_threshold: 1.0
+    projection_loss_threshold: 2.0

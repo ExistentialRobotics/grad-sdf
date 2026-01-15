@@ -71,10 +71,15 @@ criterion:
     sign_loss_free_weight: 0.0
     sign_loss_occ_weight: 0.0
     sign_loss_temperature: 100.0
+    reconstruction_loss_threshold: 0.1
+    perturbation_loss_threshold: 0.2
+    eikonal_loss_surface_threshold: 1.0
+    eikonal_loss_space_threshold: 1.0
+    projection_loss_threshold: 2.0
 num_init_frames: 3
 init_frame_iterations: 10
 num_iterations_per_frame: 1
-num_rays_total: 80960
+num_rays_total: 40960
 extra_surface_sample: false # not helpful
 frame_downsample: 10
 sample_rays:
