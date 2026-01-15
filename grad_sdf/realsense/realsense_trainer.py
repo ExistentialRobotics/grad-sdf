@@ -9,12 +9,12 @@ from tqdm import tqdm
 from grad_sdf import torch
 from grad_sdf.criterion import Criterion
 from grad_sdf.evaluator_grad_sdf import GradSdfEvaluator
-from grad_sdf.frame import Frame
+from grad_sdf.frame import DepthFrame, Frame
 from grad_sdf.key_frame_set import KeyFrameSet
 from grad_sdf.loggers import BasicLogger
 from grad_sdf.model import SdfNetwork
+from grad_sdf.realsense.realsense_stream import RealsenseStream
 from grad_sdf.trainer_config import TrainerConfig
-from grad_sdf.utils.import_util import get_dataset
 from grad_sdf.utils.profiling import GpuTimer
 from grad_sdf.utils.sampling import SampleResults, generate_sdf_samples
 
@@ -25,7 +25,7 @@ class Trainer:
 
         self.setup_seed(self.cfg.seed)
 
-        self.data_stream = get_dataset(cfg.data.dataset_name, cfg.data.dataset_args)
+        self.data_stream = RealsenseStream(**cfg.data.dataset_args)
 
         # set the bound automatically
         self.cfg.model.residual_net_cfg.bound_min = (
@@ -34,14 +34,6 @@ class Trainer:
         self.cfg.model.residual_net_cfg.bound_max = (
             (self.data_stream.bound_max + 0.15).cpu().tolist()
         )
-
-        if self.cfg.data.end_frame < 0:
-            self.cfg.data.end_frame = len(self.data_stream)
-        self.cfg.data.start_frame = min(
-            self.cfg.data.start_frame, len(self.data_stream) - 1
-        )
-        self.cfg.data.end_frame = min(self.cfg.data.end_frame, len(self.data_stream))
-        self.current_frame_idx = self.cfg.data.start_frame
 
         self.key_frame_set = KeyFrameSet(
             cfg=self.cfg.key_frame_set,
@@ -106,14 +98,14 @@ class Trainer:
         self.training_frame_start_callback: Callable[[Trainer, Frame], bool] = None  # type: ignore
         self.training_end_callback: Callable[[Trainer], None] = None  # type: ignore
 
-        self.evaluater = GradSdfEvaluator(
-            batch_size=self.cfg.batch_size,
-            clean_mesh=self.cfg.clean_mesh,
-            model_cfg=self.cfg.model,
-            model=self.model,
-            model_input_offset=None,
-            device=self.cfg.device,
-        )
+        # self.evaluater = GradSdfEvaluator(
+        #    batch_size=self.cfg.batch_size,
+        #    clean_mesh=self.cfg.clean_mesh,
+        #    model_cfg=self.cfg.model,
+        #    model=self.model,
+        #    model_input_offset=None,
+        #    device=self.cfg.device,
+        # )
 
     @staticmethod
     def setup_seed(seed):
@@ -123,17 +115,22 @@ class Trainer:
         random.seed(seed)
 
     def train(self):
-        for frame_id in tqdm(
-            range(self.cfg.data.start_frame, self.cfg.data.end_frame),
-            desc="Mapping",
-            ncols=120,
-            leave=False,
-        ):
-            frame = self.fetch_one_frame()
+        # for frame_id in tqdm(
+        #    range(self.cfg.data.start_frame, self.cfg.data.end_frame),
+        #    desc="Mapping",
+        #    ncols=120,
+        #    leave=False,
+        # ):
+        while True:
+            frame: DepthFrame = self.data_stream.get_next_frame()
             if frame is None:
                 self.logger.info("No more valid frames, finish mapping.")
                 break  # no more valid frames
 
+            frame_id = frame.get_frame_index() if frame is not None else -1
+            if frame_id > 500:
+                self.logger.info("Reached maximum frame limit, finish mapping.")
+                break
             points = frame.get_points(to_world_frame=True, device=self.cfg.device)
 
             with self.timer_octree_insert:
@@ -161,18 +158,8 @@ class Trainer:
         if self.training_end_callback is not None:
             self.training_end_callback(self)
 
-        self.evaluate()
+        # self.evaluate()
         self.save_model("final.pth")
-
-    def fetch_one_frame(self) -> Optional[Frame]:
-        frame = None
-        while self.current_frame_idx < self.cfg.data.end_frame:
-            frame = self.data_stream[self.current_frame_idx]
-            self.current_frame_idx += 1
-            if not torch.all(frame.get_ref_pose().isfinite()):  # bad pose
-                continue
-            break
-        return frame
 
     @torch.no_grad()
     def insert_points_to_octree(self, points: torch.Tensor):

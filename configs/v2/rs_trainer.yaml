@@ -5,7 +5,7 @@ exp_name: grad_sdf
 device: cuda
 data:
     identifier: grad_sdf.dataset.data_config.DataConfig
-    dataset_name: replica
+    dataset_name: realsense
     dataset_args:
         data_path: ""
         min_depth: 0.0
