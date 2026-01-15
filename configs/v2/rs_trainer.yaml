@@ -27,9 +27,9 @@ model:
     identifier: grad_sdf.model.SdfNetworkConfig
     octree_cfg:
         identifier: grad_sdf.octree_config.OctreeConfig
-        resolution: 0.75
+        resolution: 0.1
         tree_depth: 8
-        semi_sparse_depth: 2
+        semi_sparse_depth: 5
         init_voxel_num: 200000
         insertion_threshold: 3
         skip_insertion_if_exists: true   # speed up a bit
@@ -38,7 +38,7 @@ model:
         identifier: grad_sdf.residual_net.ResidualNetConfig
         bound_min: [-10, -10, -10]  # placeholder, will be overwritten by the dataset bounds
         bound_max: [10, 10, 10]  # placeholder, will be overwritten by the dataset bounds
-        resolution: 0.75
+        resolution: 0.1
         num_levels: 4
         feature_dims: 2
         log2_T: 19
@@ -67,7 +67,7 @@ criterion:
 num_init_frames: 3
 init_frame_iterations: 10
 num_iterations_per_frame: 1
-num_rays_total: 2048
+num_rays_total: 20480
 extra_surface_sample: false   # not helpful
 frame_downsample: 100
 sample_rays:
@@ -78,13 +78,13 @@ sample_rays:
     depth_max: 10.0
     surface_margin: 0.08
     sigma_s: 0.06
-batch_size: 20480
+batch_size: 204800
 lr: 0.005
 grad_method: finite_difference
 finite_difference_eps: 0.03
 final_iterations: 0
 save_mesh: true
-mesh_resolution: 0.2
+mesh_resolution: 0.02
 mesh_iso_value: 0.0
 clean_mesh: true
 ckpt_interval: -1

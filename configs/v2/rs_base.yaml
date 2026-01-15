@@ -1,4 +1,4 @@
-base_config: trainer.yaml
+base_config: rs_trainer.yaml
 data:
     dataset_args:
         max_depth: 10.0

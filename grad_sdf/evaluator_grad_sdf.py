@@ -102,7 +102,9 @@ class GradSdfEvaluator(EvaluatorBase):
             bs = int(self.batch_size * 3 * points.shape[0] / points.numel()) + 1
 
         if self.model_input_offset is not None:
-            points = points + torch.tensor(self.model_input_offset, device=points.device).to(points.dtype)
+            points = points + torch.tensor(
+                self.model_input_offset, device=points.device
+            ).to(points.dtype)
 
         voxel_indices = []
         sdf_prior = []
@@ -111,11 +113,19 @@ class GradSdfEvaluator(EvaluatorBase):
         sdf_prior_grad = []
         sdf_grad = []
 
-        for i in tqdm(range(0, points.shape[0], bs), desc="Batches", ncols=120, position=1, leave=False):
+        for i in tqdm(
+            range(0, points.shape[0], bs),
+            desc="Batches",
+            ncols=120,
+            position=1,
+            leave=False,
+        ):
             j = min(i + bs, points.shape[0])
             points_batch = points[i:j].to(self.device)
             points_batch.requires_grad_(auto_grad)
-            voxel_indices_batch, sdf_prior_batch, sdf_residual_batch, sdf_pred_batch = model(points_batch)
+            voxel_indices_batch, sdf_prior_batch, sdf_residual_batch, sdf_pred_batch = (
+                model(points_batch)
+            )
 
             if get_grad:
                 if auto_grad:
@@ -144,8 +154,12 @@ class GradSdfEvaluator(EvaluatorBase):
                         offset = offset.view(*[1] * (points_batch.ndim - 1), 3)
                         _, sdf_prior_plus, _, sdf_plus = model(points_batch + offset)
                         _, sdf_prior_minus, _, sdf_minus = model(points_batch - offset)
-                        sdf_grad_batch[..., k] = (sdf_plus - sdf_minus) / (2 * finite_diff_eps)
-                        sdf_prior_grad_batch[..., k] = (sdf_prior_plus - sdf_prior_minus) / (2 * finite_diff_eps)
+                        sdf_grad_batch[..., k] = (sdf_plus - sdf_minus) / (
+                            2 * finite_diff_eps
+                        )
+                        sdf_prior_grad_batch[..., k] = (
+                            sdf_prior_plus - sdf_prior_minus
+                        ) / (2 * finite_diff_eps)
                     sdf_prior_grad.append(sdf_prior_grad_batch.detach().cpu())
                     sdf_grad.append(sdf_grad_batch.detach().cpu())
 
@@ -173,7 +187,12 @@ class GradSdfEvaluator(EvaluatorBase):
                 sdf_prior_grad = torch.cat(sdf_prior_grad, dim=0).to(device)
                 sdf_grad = torch.cat(sdf_grad, dim=0).to(device)
 
-        result = dict(voxel_indices=voxel_indices, sdf_prior=sdf_prior, sdf_residual=sdf_residual, sdf=sdf_pred)
+        result = dict(
+            voxel_indices=voxel_indices,
+            sdf_prior=sdf_prior,
+            sdf_residual=sdf_residual,
+            sdf=sdf_pred,
+        )
         if get_grad:
             result["grad"] = dict(sdf_prior=sdf_prior_grad, sdf=sdf_grad)
         return result
@@ -222,7 +241,9 @@ def main():
     parser.add_argument("--grid-resolution", type=float, default=0.0125)
     parser.add_argument("--bound-min", type=float, nargs=3)
     parser.add_argument("--bound-max", type=float, nargs=3)
-    parser.add_argument("--extract-fields", type=str, nargs="+", default=["sdf", "sdf_prior"])
+    parser.add_argument(
+        "--extract-fields", type=str, nargs="+", default=["sdf", "sdf_prior"]
+    )
 
     parser.add_argument("--extract-mesh", action="store_true")
     parser.add_argument("--clean-mesh", action="store_true")
@@ -230,13 +251,22 @@ def main():
 
     parser.add_argument("--sdf-and-grad-metrics", action="store_true")
     parser.add_argument("--test-set-dir", type=str, help="Directory of the test set")
-    parser.add_argument("--sdf-fields", type=str, nargs="+", default=["sdf", "sdf_prior"])
-    parser.add_argument("--grad-method", type=str, default="autograd", choices=["autograd", "finite_difference"])
+    parser.add_argument(
+        "--sdf-fields", type=str, nargs="+", default=["sdf", "sdf_prior"]
+    )
+    parser.add_argument(
+        "--grad-method",
+        type=str,
+        default="autograd",
+        choices=["autograd", "finite_difference"],
+    )
     parser.add_argument("--finite-difference-eps", type=float, default=0.001)
 
     parser.add_argument("--mesh-metrics", action="store_true")
     parser.add_argument("--pred-mesh-paths", type=str, nargs="+")
-    parser.add_argument("--gt-mesh-path", type=str, help="Path to the ground truth mesh file")
+    parser.add_argument(
+        "--gt-mesh-path", type=str, help="Path to the ground truth mesh file"
+    )
     parser.add_argument("--f1-threshold", type=float, default=0.05)
     parser.add_argument("--num-points", type=int, default=200_000)
     parser.add_argument("--seed", type=int, default=0)
@@ -277,7 +307,9 @@ def main():
             grid_resolution=args.grid_resolution,
         )
         for field_name in args.extract_fields:
-            assert field_name in results, f"Field {field_name} not found in model output"
+            assert (
+                field_name in results
+            ), f"Field {field_name} not found in model output"
             grid = results[field_name].cpu().numpy()
             grid_file = os.path.join(output_dir, f"grid_{field_name}.npy")
             with open(grid_file, "wb") as f:
@@ -331,11 +363,15 @@ def main():
             ), "No extracted meshes found. Please provide --pred-mesh-paths or use --extract-mesh"
             pred_mesh_paths = mesh_files
 
-        assert os.path.exists(args.gt_mesh_path), f"Ground truth mesh file {args.gt_mesh_path} does not exist"
+        assert os.path.exists(
+            args.gt_mesh_path
+        ), f"Ground truth mesh file {args.gt_mesh_path} does not exist"
 
         df = None
         for pred_mesh_path in pred_mesh_paths:
-            assert os.path.exists(pred_mesh_path), f"Predicted mesh file {pred_mesh_path} does not exist"
+            assert os.path.exists(
+                pred_mesh_path
+            ), f"Predicted mesh file {pred_mesh_path} does not exist"
 
             mesh_metrics = evaluator.mesh_metrics(
                 pred_mesh_path=pred_mesh_path,
@@ -351,7 +387,9 @@ def main():
                 columns = ["mesh_file"] + list(mesh_metrics.keys())
                 df = pd.DataFrame(columns=columns)
 
-            df.loc[len(df)] = [os.path.basename(pred_mesh_path)] + [mesh_metrics[k] for k in mesh_metrics.keys()]
+            df.loc[len(df)] = [os.path.basename(pred_mesh_path)] + [
+                mesh_metrics[k] for k in mesh_metrics.keys()
+            ]
             tqdm.write(f"Metrics for {pred_mesh_path}:")
             for k, v in mesh_metrics.items():
                 tqdm.write(f"  {k}: {v}")
