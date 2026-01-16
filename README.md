@@ -101,7 +101,7 @@ $\nabla$-SDF is a hybrid SDF reconstruction framework that combines gradient-aug
 
 4. Install $\nabla$-SDF
     ```bash
-    pip install --no-build-isolation -e .
+    pip install -e .
     ```
 
 ## Prepare Dataset
