@@ -15,3 +15,5 @@ class DataConfig(ConfigABC):
     start_frame: int = 0
     end_frame: int = -1
     offset: list = field(default_factory=lambda: [0.0, 0.0, 0.0])
+    noise_filter_threshold: float = 0.5
+    min_blob_size: int = 30

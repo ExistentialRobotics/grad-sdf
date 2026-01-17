@@ -112,18 +112,18 @@ class Criterion(nn.Module):
                 grad_norm = torch.norm(pred_grad, dim=-1)
             heat_loss = self.get_heat_loss(pred_sdf, grad_norm)
 
-        mask_total = (
-            mask_boundary_loss
-            & mask_perturbation_loss
-            & eikonal_loss_surface_mask
-            & eikonal_loss_space_mask
-            & projection_loss_mask
-        )
-        loss_boundary = boundary_loss[mask_total].mean()
-        loss_perturbation = perturbation_loss[mask_total].mean()
-        loss_eikonal_surface = eikonal_loss_surface[mask_total].mean()
-        loss_eikonal_space = eikonal_loss_space[mask_total].mean()
-        loss_projection = projection_loss[mask_total].mean()
+        # mask_total = (
+        #     mask_boundary_loss
+        #     & mask_perturbation_loss
+        #     & eikonal_loss_surface_mask
+        #     & eikonal_loss_space_mask
+        #     & projection_loss_mask
+        # )
+        loss_boundary = boundary_loss[mask_boundary_loss].mean()
+        loss_perturbation = perturbation_loss[mask_perturbation_loss].mean()
+        loss_eikonal_surface = eikonal_loss_surface[eikonal_loss_surface_mask].mean()
+        loss_eikonal_space = eikonal_loss_space[eikonal_loss_space_mask].mean()
+        loss_projection = projection_loss[projection_loss_mask].mean()
         loss = (
             self.cfg.boundary_loss_weight * loss_boundary
             + self.cfg.perturbation_loss_weight * loss_perturbation

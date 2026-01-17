@@ -13,6 +13,8 @@ data:
         offset: [0.0, 0.0, 0.0]
         bound_min:
         bound_max:
+        noise_filter_threshold: 0.5
+        min_blob_size: 30
     start_frame: 0
     end_frame: -1
 key_frame_set:
@@ -32,6 +34,7 @@ sample_table:
     extra_ratio: 0.2
 model:
     identifier: grad_sdf.model.SdfNetworkConfig
+    only_prior: false
     octree_cfg:
         identifier: grad_sdf.octree_config.OctreeConfig
         resolution: 0.1
@@ -84,14 +87,14 @@ extra_surface_sample: false # not helpful
 frame_downsample: 10
 sample_rays:
     identifier: grad_sdf.utils.sampling.SampleRaysConfig
-    n_stratified: 1
+    n_stratified: 2
     n_perturbed: 2
     depth_min: 0.6
     depth_max: 40.0
-    surface_margin: 0.7
-    sigma_s: 0.36
+    surface_margin: 0.01
+    sigma_s: 0.72
 batch_size: 204800
-lr: 0.01
+lr: 0.001
 grad_method: finite_difference
 finite_difference_eps: 0.1
 final_iterations: 0

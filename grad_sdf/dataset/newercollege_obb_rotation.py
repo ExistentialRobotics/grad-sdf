@@ -19,6 +19,20 @@ parser.add_argument(
     required=True,
     help="Path to save the processed meshes and traj.txt files.",
 )
+parser.add_argument(
+    "--additional-meshes",
+    type=str,
+    nargs="*",
+    default=[],
+    help="Additional mesh files to rotate with the same transformation. Paths relative to dataset-dir.",
+)
+parser.add_argument(
+    "--additional-pointclouds",
+    type=str,
+    nargs="*",
+    default=[],
+    help="Additional pointcloud files to rotate with the same transformation. Paths relative to dataset-dir.",
+)
 args = parser.parse_args()
 
 os.makedirs(args.output_dir, exist_ok=True)
@@ -93,6 +107,71 @@ if success:
     print(f"rotated mesh has been saved to: {output_mesh}")
 else:
     print(f"save failed: {output_mesh}")
+
+# process additional meshes with the same transformation
+if args.additional_meshes:
+    print(f"\nProcessing {len(args.additional_meshes)} additional meshes...")
+    for mesh_file in args.additional_meshes:
+        input_mesh_path = os.path.join(args.dataset_dir, mesh_file)
+        if not os.path.exists(input_mesh_path):
+            print(f"Warning: mesh file not found: {input_mesh_path}, skipping...")
+            continue
+
+        # load the additional mesh
+        try:
+            tri_mesh_add = trimesh.load(input_mesh_path)
+            mesh_add = o3d.geometry.TriangleMesh()
+            mesh_add.vertices = o3d.utility.Vector3dVector(np.array(tri_mesh_add.vertices).astype(np.float64))
+            mesh_add.triangles = o3d.utility.Vector3iVector(np.array(tri_mesh_add.faces).astype(np.int32))
+            mesh_add.vertex_normals = o3d.utility.Vector3dVector(
+                np.array(tri_mesh_add.vertex_normals).astype(np.float64)
+            )
+            mesh_add.remove_degenerate_triangles()
+            mesh_add.compute_vertex_normals()
+
+            # apply the same transformation
+            mesh_add.translate(-obb.center)
+            mesh_add.rotate(R, center=(0, 0, 0))
+
+            # save with the same filename in output directory
+            output_mesh_path = os.path.join(args.output_dir, os.path.basename(mesh_file))
+            success = o3d.io.write_triangle_mesh(output_mesh_path, mesh_add)
+            if success:
+                print(f"  Rotated mesh saved to: {output_mesh_path}")
+            else:
+                print(f"  Failed to save: {output_mesh_path}")
+        except Exception as e:
+            print(f"Error processing {input_mesh_path}: {e}")
+
+# process additional pointclouds with the same transformation
+if args.additional_pointclouds:
+    print(f"\nProcessing {len(args.additional_pointclouds)} additional pointclouds...")
+    for pc_file in args.additional_pointclouds:
+        input_pc_path = os.path.join(args.dataset_dir, pc_file)
+        if not os.path.exists(input_pc_path):
+            print(f"Warning: pointcloud file not found: {input_pc_path}, skipping...")
+            continue
+
+        # load the pointcloud
+        try:
+            pc = o3d.io.read_point_cloud(input_pc_path)
+            if not pc.has_points():
+                print(f"Warning: pointcloud is empty: {input_pc_path}, skipping...")
+                continue
+
+            # apply the same transformation
+            pc.translate(-obb.center)
+            pc.rotate(R, center=(0, 0, 0))
+
+            # save with the same filename in output directory
+            output_pc_path = os.path.join(args.output_dir, os.path.basename(pc_file))
+            success = o3d.io.write_point_cloud(output_pc_path, pc)
+            if success:
+                print(f"  Rotated pointcloud saved to: {output_pc_path}")
+            else:
+                print(f"  Failed to save: {output_pc_path}")
+        except Exception as e:
+            print(f"Error processing {input_pc_path}: {e}")
 
 # process the corresponding poses.txt file
 camera_poses = []

@@ -15,12 +15,14 @@ from grad_sdf.utils.config_abc import ConfigABC
 class SdfNetworkConfig(ConfigABC):
     octree_cfg: OctreeConfig = field(default_factory=OctreeConfig)
     residual_net_cfg: ResidualNetConfig = field(default_factory=ResidualNetConfig)
+    only_prior: bool = False
 
 
 class SdfNetwork(nn.Module):
     def __init__(self, cfg: SdfNetworkConfig):
         super().__init__()
         self.cfg = cfg
+        self.only_prior = cfg.only_prior
         self.octree: SemiSparseOctree = SemiSparseOctree(cfg.octree_cfg)
         self.residual: ResidualNet = ResidualNet(cfg.residual_net_cfg)
 
@@ -42,6 +44,10 @@ class SdfNetwork(nn.Module):
         if voxel_indices is not None:
             voxel_indices = voxel_indices.view(-1)
         sdf_prior, voxel_indices = self.octree(points, voxel_indices)
+        if self.only_prior:
+            sdf_prior = sdf_prior.view(shape[:-1])
+            voxel_indices = voxel_indices.view(shape[:-1])
+            return voxel_indices, sdf_prior, sdf_prior, sdf_prior
         sdf_residual = self.residual(points)
 
         sdf_prior = sdf_prior.view(shape[:-1])

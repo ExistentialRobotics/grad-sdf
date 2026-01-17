@@ -21,6 +21,8 @@ class DataLoader(Dataset):
         offset: torch.Tensor = None,
         bound_min: torch.Tensor = None,
         bound_max: torch.Tensor = None,
+        noise_filter_threshold: float = 0.5,
+        min_blob_size: int = 30,
     ):
         self.data_path = data_path
         self.min_depth = min_depth
@@ -28,6 +30,8 @@ class DataLoader(Dataset):
         self.offset = offset
         self.bound_min = bound_min
         self.bound_max = bound_max
+        self.noise_filter_threshold = noise_filter_threshold
+        self.min_blob_size = min_blob_size
 
         if self.bound_min is None or self.bound_max is None:
             mesh_path = osp.join(data_path, "gt-mesh.ply")
@@ -90,17 +94,17 @@ class DataLoader(Dataset):
         ply_path = osp.join(self.data_path, "ply/{:04d}.ply".format(index))
         pcd = o3d.io.read_point_cloud(ply_path)
         pointcloud = torch.from_numpy(np.asarray(pcd.points)).float()
-        
+
         # 计算每个点到相机原点的距离（坐标的范数）
         depth = torch.norm(pointcloud, dim=-1)
-        
+
         # 根据深度范围进行筛选
         mask = torch.ones(depth.shape[0], dtype=torch.bool)
         if self.min_depth > 0:
-            mask &= (depth >= self.min_depth)
+            mask &= depth >= self.min_depth
         if self.max_depth > 0:
-            mask &= (depth <= self.max_depth)
-        
+            mask &= depth <= self.max_depth
+
         pointcloud = pointcloud[mask]
         return pointcloud
 
@@ -113,6 +117,8 @@ class DataLoader(Dataset):
         frame = LiDARFrame(index, pointcloud, self.offset, pose)
         if self.bound_min is not None and self.bound_max is not None:
             frame.apply_bound(self.bound_min, self.bound_max)
+        if self.noise_filter_threshold is not None and self.min_blob_size is not None:
+            frame.apply_noise_filter(self.noise_filter_threshold, self.min_blob_size)
         return frame
 
 
