@@ -3,14 +3,16 @@
 # bound_max: [3.869352102279663, 2.348031520843506, 1.3950726985931396]
 
 base_config: trainer.yaml
-exp_name: noise-filter-0.1
+exp_name: knn-filter-0.12-10
 data:
     dataset_args:
         data_path: "data/newercollege-lidar-rotated"
         min_depth: 0.6
         max_depth: 40.0
-        noise_filter_threshold: 0.03
-        min_blob_size: 30
+        noise_filter_threshold: -1
+        min_blob_size: -1
+        knn_distance_threshold: 0.15
+        knn_neighbor_count: 8
         # offset: [20, 29, 14]
     start_frame: 0
     end_frame: -1
@@ -32,8 +34,8 @@ sample_table:
     frames_num: 1988
     extra_ratio: 0.0
 criterion:
-    reconstruction_loss_threshold: 1.0
-    perturbation_loss_threshold: 5.0
-    eikonal_loss_surface_threshold: 5.0
-    eikonal_loss_space_threshold: 5.0
-    projection_loss_threshold: 5.0
+    reconstruction_loss_threshold: -1
+    perturbation_loss_threshold: -1
+    eikonal_loss_surface_threshold: -1
+    eikonal_loss_space_threshold: -1
+    projection_loss_threshold: -1

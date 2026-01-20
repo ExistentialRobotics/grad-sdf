@@ -1,6 +1,8 @@
 import torch
+import torch.nn.functional as F
 import numpy as np
 import cv2
+from pytorch3d.ops import knn_points
 
 
 class Frame:
@@ -158,6 +160,7 @@ class LiDARFrame:
         self.stamp = fid
         self.points = pointcloud
         self.offset = offset
+        self.device = pointcloud.device
 
         if ref_pose.ndim != 2:
             ref_pose = ref_pose.reshape(4, 4)
@@ -207,142 +210,175 @@ class LiDARFrame:
 
     def apply_bound(self, bound_min: torch.Tensor, bound_max: torch.Tensor):
         points = self.points @ self.ref_pose[:3, :3].T + self.ref_pose[:3, 3]
-        mask = points >= bound_min.view(1, 3)
-        mask = mask & (points <= bound_max.view(1, 3))
-        mask = mask.all(dim=-1)
-        self.valid_mask = mask & self.valid_mask
+        bound_mask = points >= bound_min.view(1, 3)
+        bound_mask = bound_mask & (points <= bound_max.view(1, 3))
+        bound_mask = bound_mask.all(dim=-1)
+        self.valid_mask = bound_mask & self.valid_mask
 
+    @torch.no_grad()
     def pcd_to_image(self, width=1024, height=128):
-        """
-        将点云转换为深度图像
-        Args:
-            width: 图像宽度，对应水平分辨率 (360度)
-            height: 图像高度，对应垂直分辨率 (90度)
-        Returns:
-            depth_image: (height, width) 深度图像
-            mask: (height, width) 有效点的mask
-            point_to_pixel: (N, 2) 点云到像素的对应关系 [u, v]
-            pixel_to_point: (height, width) 像素到点云的对应关系，存储点索引，-1表示无效
-        """
-        points = self.points[self.valid_mask]  # (N, 3)
-        depth = self.get_depth()[self.valid_mask]  # (N,)
+        # 仅处理当前 valid_mask 为 True 的点，或者直接处理全量点
+        # 建议处理全量点，通过返回值中的 mask 来区分
+        points = self.points
+        depth = torch.norm(points, dim=-1)
 
-        # 计算方位角 (Azimuth angle): atan2(y, x)
-        # 范围 [-π, π]，对应水平360度
-        azimuth = torch.atan2(points[:, 1], points[:, 0])  # (N,)
-
-        # 计算仰角 (Elevation angle): atan2(z, sqrt(x^2 + y^2))
-        # 范围 [-π/4, π/4]，对应垂直90度 (±45度)
+        # 1. 计算角度
+        azimuth = torch.atan2(points[:, 1], points[:, 0])  # [-pi, pi]
         xy_dist = torch.sqrt(points[:, 0] ** 2 + points[:, 1] ** 2)
-        elevation = torch.atan2(points[:, 2], xy_dist)  # (N,)
+        elevation = torch.atan2(points[:, 2], xy_dist)  # [-pi/4, pi/4]
 
-        # 将角度映射到像素坐标
-        # 水平: azimuth ∈ [-π, π] -> u ∈ [0, width)
-        # 反转方向以匹配LiDAR的扫描方向
+        # 2. 水平映射 (360度)
         u = ((azimuth + torch.pi) / (2 * torch.pi) * width).long()
-        u = torch.clamp(u, 0, width - 1)
-        u = width - 1 - u  # 反转水平方向
+        u = torch.clamp(width - 1 - u, 0, width - 1)
 
-        # 垂直: elevation ∈ [-π/4, π/4] -> v ∈ [0, height)
-        # 注意：图像坐标v从上到下增加，所以需要翻转
+        # 3. 垂直映射 (针对你的 90度 FOV)
+        # 公式: v = (max_angle - current_angle) / total_range * height
+        # max_angle = pi/4 (+45°), total_range = pi/2 (90°)
         v = ((torch.pi / 4 - elevation) / (torch.pi / 2) * height).long()
         v = torch.clamp(v, 0, height - 1)
 
-        # 创建深度图像和像素到点云的映射
-        depth_image = torch.zeros(height, width, dtype=torch.float32)
-        mask = torch.zeros(height, width, dtype=torch.bool)
-        pixel_to_point = torch.full((height, width), -1, dtype=torch.long)
+        # 3. 创建结果容器
+        # 用 -1 初始化，表示该像素没有点
+        pixel_to_point = torch.full((height, width), -1, dtype=torch.long, device=self.device)
+        depth_image = torch.zeros((height, width), dtype=torch.float32, device=self.device)
 
-        # 将深度值填充到对应的像素位置
-        # 如果多个点映射到同一像素，保留最近的深度值
-        for i in range(len(points)):
-            pixel_v, pixel_u = v[i].item(), u[i].item()
-            if not mask[pixel_v, pixel_u] or depth[i] < depth_image[pixel_v, pixel_u]:
-                depth_image[pixel_v, pixel_u] = depth[i]
-                mask[pixel_v, pixel_u] = True
-                pixel_to_point[pixel_v, pixel_u] = i
+        # 4. 核心：处理点到像素的竞争 (保留最近点)
+        # 只有当前有效且深度 > 0 的点参与投影
+        valid_idx = torch.where(self.valid_mask & (depth > 0))[0]
+        if valid_idx.shape[0] > 0:
+            # 按深度降序排序：远点在前，近点在后
+            sort_idx = valid_idx[torch.argsort(depth[valid_idx], descending=True)]
 
-        # 构建点云到像素的对应关系 (N, 2)，格式为 [u, v]
-        point_to_pixel = torch.stack([u, v], dim=1)
+            # 利用 Tensor 索引的特性：后面的赋值会覆盖前面的
+            # 这样近距离的点会最终留在像素中
+            pixel_to_point[v[sort_idx], u[sort_idx]] = sort_idx
+            depth_image[v[sort_idx], u[sort_idx]] = depth[sort_idx]
 
-        return depth_image, mask, point_to_pixel, pixel_to_point
+        mask = pixel_to_point != -1
+        return depth_image, mask, pixel_to_point
 
     def apply_noise_filter(self, noise_filter_threshold: float = 0.5, min_blob_size: int = 30):
-        """
-        应用噪声滤波：深度跳变过滤 + 连通域孤立点过滤
-        Args:
-            noise_filter_threshold: 深度跳变阈值 (米)，建议 0.5 - 1.5
-            min_blob_size: 最小连通域像素数，小于此值的点簇将被视为噪声剔除
-        """
-        # 1. 获取投影后的图像和映射关系
-        depth_image, mask, point_to_pixel, pixel_to_point = self.pcd_to_image()
-        height, width = depth_image.shape
-        device = depth_image.device
+        # 1. 获取投影（此时 pixel_to_point 存储的是 self.points 的原始索引）
+        depth_image, mask, pixel_to_point = self.pcd_to_image()
 
-        # --- 步骤 A: 深度跳变过滤 (Jump Distance Filter) ---
-        # 利用 torch.roll 实现水平 360 度环绕对比 (同一 Ring 邻居)
-        left_depth = torch.roll(depth_image, shifts=1, dims=1)
-        right_depth = torch.roll(depth_image, shifts=-1, dims=1)
+        # --- 步骤 A: 深度跳变过滤 ---
+        # 在稀疏图上，roll 操作依然有效，但要注意空像素（depth=0）的干扰
+        # 我们只对 mask 为 True 的像素计算跳变
+        l_diff = torch.abs(depth_image - torch.roll(depth_image, 1, 1))
+        r_diff = torch.abs(depth_image - torch.roll(depth_image, -1, 1))
 
-        # 计算水平跳变：如果当前点比左右邻居都远/近超过阈值
-        # 注意：我们只对比 mask 为 True 的点，避免背景 0 干扰
-        h_jump = (torch.abs(depth_image - left_depth) > noise_filter_threshold) & (
-            torch.abs(depth_image - right_depth) > noise_filter_threshold
-        )
+        # 如果左右邻居都有点，且当前点比它们都远/近超过阈值，视为噪声
+        # 注意：如果邻居是 0 (空像素)，这种过滤会失效，这是基于图像过滤的固有局限
+        is_jump = (mask) & (l_diff > noise_filter_threshold) & (r_diff > noise_filter_threshold)
 
-        # 垂直方向跳变 (相邻 Beam 之间)
-        v_jump = torch.zeros_like(h_jump)
-        # 计算上方和下方的深度差 (不循环 roll)
-        v_jump[1:-1, :] = (torch.abs(depth_image[1:-1, :] - depth_image[:-2, :]) > noise_filter_threshold) & (
-            torch.abs(depth_image[1:-1, :] - depth_image[2:, :]) > noise_filter_threshold
-        )
+        # --- 步骤 B: 连通域过滤 (移除孤立小点簇) ---
+        # 将跳变点从 mask 中移除
+        clean_mask = mask & (~is_jump)
 
-        # 如果在水平或垂直方向都是孤立的跳变点，标记为疑似噪声
-        jump_mask = h_jump & v_jump
+        # OpenCV 处理 (CPU)
+        clean_mask_np = clean_mask.cpu().numpy().astype(np.uint8)
+        num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(clean_mask_np, connectivity=8)
 
-        # --- 步骤 B: 连通域离群点剔除 (Connected Component Filter) ---
-        # 这一步能非常有效地去除玻璃反射产生的浮空点簇
-        # 先得到初步过滤后的有效 mask
-        pre_mask = mask & (~jump_mask)
-
-        # 转换为 numpy 以使用 OpenCV 的连通域分析
-        pre_mask_np = pre_mask.cpu().numpy().astype(np.uint8)
-
-        # 使用 8 连通域分析
-        num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(pre_mask_np, connectivity=8)
-
-        # 过滤掉像素数过少的“孤岛”
-        final_mask_np = np.zeros_like(pre_mask_np)
-        for i in range(1, num_labels):  # label 0 是背景
+        final_mask_np = np.zeros_like(clean_mask_np)
+        for i in range(1, num_labels):
             if stats[i, cv2.CC_STAT_AREA] >= min_blob_size:
                 final_mask_np[labels == i] = 1
 
-        final_mask_torch = torch.from_numpy(final_mask_np).bool().to(device)
+        final_mask_torch = torch.from_numpy(final_mask_np).to(self.device).bool()
 
-        # --- 步骤 C: 将过滤结果映射回原始点云 ---
-        # 1. 找出被保留下来的像素坐标对应的点索引
-        # 只有在 final_mask_torch 为 True 且 pixel_to_point 有效的地方才保留
-        keep_indices_in_subset = pixel_to_point[final_mask_torch]
-        # 排除掉可能存在的 -1 值（虽然逻辑上在 mask 里的点索引应该都 >= 0）
-        keep_indices_in_subset = keep_indices_in_subset[keep_indices_in_subset >= 0]
+        # --- 步骤 C: 精确映射回原始点云 ---
+        # 1. 找出被判定为“噪声”的像素
+        # 那些本来有点（mask 为 True），但最后没在 final_mask_torch 里的点
+        noise_pixels = mask & (~final_mask_torch)
 
-        # 2. 更新 self.valid_mask
-        # 此时 keep_indices_in_subset 是相对于 points = self.points[self.valid_mask] 的索引
-        # 我们需要将其映射回原始点云的全量索引
-        original_valid_indices = torch.where(self.valid_mask)[0]
-        final_valid_indices = original_valid_indices[keep_indices_in_subset]
+        # 2. 获取这些像素对应的原始点云索引
+        noise_indices = pixel_to_point[noise_pixels]
+        noise_indices = noise_indices[noise_indices >= 0]  # 过滤掉无效索引
 
-        # 创建新的全局 valid_mask
-        new_valid_mask = torch.zeros_like(self.valid_mask, dtype=torch.bool)
-        new_valid_mask[final_valid_indices] = True
+        # 3. 在全局 mask 中剔除这些点
+        noise_filtered_mask = self.valid_mask.clone()
+        noise_filtered_mask[noise_indices] = False
 
-        # 3. 打印过滤结果
-        num_before = self.valid_mask.sum().item()
-        num_after = final_valid_indices.shape[0]
+        print(f"Noise filtered: {self.valid_mask.sum() - noise_filtered_mask.sum()} points removed.")
+        self.valid_mask = noise_filtered_mask
 
-        print(f"noise filter 保留比例: {num_after / num_before * 100:.2f}%")
+    def apply_noise_filter_gpu(self, noise_filter_threshold: float = 0.5, min_neighbor_count: int = 5):
+        """
+        完全在 GPU 上运行的滤波逻辑
+        :param noise_filter_threshold: 深度跳变阈值
+        :param min_neighbor_count: 在 3x3 窗口内，最少需要多少个邻居点才不被判定为孤立噪声
+        """
+        # 1. 获取投影映射
+        depth_image, mask, pixel_to_point = self.pcd_to_image()
 
-        self.valid_mask = self.valid_mask & new_valid_mask
+        # --- 步骤 A: GPU 跳变过滤 (Jump Filter) ---
+        # 利用 roll 实现快速位移
+        mask_l = torch.roll(mask, shifts=1, dims=1)
+        mask_r = torch.roll(mask, shifts=-1, dims=1)
+        diff_l = torch.abs(depth_image - torch.roll(depth_image, 1, 1))
+        diff_r = torch.abs(depth_image - torch.roll(depth_image, -1, 1))
+
+        # 逻辑：只有当邻居存在且深度差异大时，才标记为跳变候选
+        # 这里的逻辑是：如果该点与它“存在的邻居”差异都很大，则它是噪声
+        jump_l = mask & mask_l & (diff_l > noise_filter_threshold)
+        jump_r = mask & mask_r & (diff_r > noise_filter_threshold)
+
+        is_jump = jump_l & jump_r
+
+        # --- 步骤 B: GPU 孤立点过滤 (替代 Connected Components) ---
+        # 先剔除跳变点，得到初步干净的 mask
+        clean_mask = mask & (~is_jump)
+
+        # 使用 2D 卷积统计 3x3 或 5x5 邻域内有效点的数量
+        # 卷积核全为 1，计算结果就是该像素周围有效点的总数
+        kernel_size = 3
+        kernel = torch.ones((1, 1, kernel_size, kernel_size), device=self.device)
+
+        # 将 mask 转为 float 进行卷积
+        mask_float = clean_mask.float().unsqueeze(0).unsqueeze(0)  # (1, 1, H, W)
+        # padding=1 保证尺寸不变
+        neighbor_count_map = F.conv2d(mask_float, kernel, padding=kernel_size // 2).squeeze()
+
+        # 最终保留的 mask：原本有点，且周围邻居数量达标
+        final_mask_gpu = clean_mask & (neighbor_count_map >= min_neighbor_count)
+
+        # --- 步骤 C: 逻辑运算更新有效索引 ---
+        # 找出被滤掉的点：原本在 mask 中，但不在 final_mask_gpu 中
+        removed_pixel_mask = mask & (~final_mask_gpu)
+
+        # 获取这些像素对应的原始点云索引
+        noise_indices = pixel_to_point[removed_pixel_mask]
+        noise_indices = noise_indices[noise_indices >= 0]
+
+        # 更新全局 valid_mask
+        new_valid_mask = self.valid_mask.clone()
+        new_valid_mask[noise_indices] = False
+
+        print(f"GPU Noise Filter: {self.valid_mask.sum() - new_valid_mask.sum()} points removed.")
+        self.valid_mask = new_valid_mask
+
+    def apply_knn_noise_filter(self, knn_distance_threshold: float = 0.12, knn_neighbor_count: int = 10):
+        points = self.points.to("cuda")
+        # 搜索K个最近邻（包括自己）
+        knn_result = knn_points(points.unsqueeze(0), points.unsqueeze(0), K=knn_neighbor_count)
+
+        # dists: [1, N, K]，距离的平方
+        dists = knn_result.dists[0]  # [N, K]
+
+        # 排除第一个邻居（自己，距离为0），计算后面K-1个邻居的平均距离
+        avg_distances = torch.sqrt(dists[:, 1:]).mean(dim=1)  # [N]
+
+        depth = self.get_depth()
+        valid_threshold = depth / 20.0 * knn_distance_threshold
+
+        # 保留平均距离小于等于阈值的点
+        knn_valid_mask = (avg_distances <= valid_threshold).to(self.valid_mask.device)
+
+        kept = knn_valid_mask.sum().item()
+        total = len(knn_valid_mask)
+        print(f"KNN Noise Filter: {kept}/{total} points kept ({100 * kept / total:.2f}%)")
+
+        self.valid_mask = self.valid_mask & knn_valid_mask
 
     def sample_points(
         self,

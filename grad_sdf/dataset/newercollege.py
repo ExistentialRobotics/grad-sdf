@@ -23,6 +23,8 @@ class DataLoader(Dataset):
         bound_max: torch.Tensor = None,
         noise_filter_threshold: float = 0.5,
         min_blob_size: int = 30,
+        knn_distance_threshold: float = 0.12,
+        knn_neighbor_count: int = 10,
     ):
         self.data_path = data_path
         self.min_depth = min_depth
@@ -32,6 +34,8 @@ class DataLoader(Dataset):
         self.bound_max = bound_max
         self.noise_filter_threshold = noise_filter_threshold
         self.min_blob_size = min_blob_size
+        self.knn_distance_threshold = knn_distance_threshold
+        self.knn_neighbor_count = knn_neighbor_count
 
         if self.bound_min is None or self.bound_max is None:
             mesh_path = osp.join(data_path, "gt-mesh.ply")
@@ -115,10 +119,14 @@ class DataLoader(Dataset):
         pointcloud = self.load_pointcloud(index)
         pose = self.gt_pose[index]
         frame = LiDARFrame(index, pointcloud, self.offset, pose)
+        if self.noise_filter_threshold > 0 and self.min_blob_size > 0:
+            # frame.apply_noise_filter(self.noise_filter_threshold, self.min_blob_size)
+            frame.apply_noise_filter(self.noise_filter_threshold, self.min_blob_size)
+        if self.knn_distance_threshold > 0 and self.knn_neighbor_count > 0:
+            frame.apply_knn_noise_filter(self.knn_distance_threshold, self.knn_neighbor_count)
         if self.bound_min is not None and self.bound_max is not None:
             frame.apply_bound(self.bound_min, self.bound_max)
-        if self.noise_filter_threshold is not None and self.min_blob_size is not None:
-            frame.apply_noise_filter(self.noise_filter_threshold, self.min_blob_size)
+
         return frame
 
 

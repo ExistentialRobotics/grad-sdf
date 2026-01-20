@@ -144,8 +144,11 @@ class Criterion(nn.Module):
         pred_sdf_surface = pred_sdf[:, -1]
         boundary_loss = self.boundary_loss_fn(pred_sdf_surface, torch.zeros_like(pred_sdf_surface))
         self.boundary_loss_table[frames_idx, :] = boundary_loss.cpu().detach()
-        mask_boundary_loss = boundary_loss <= self.cfg.reconstruction_loss_threshold
-        return boundary_loss, mask_boundary_loss
+        if self.cfg.reconstruction_loss_threshold > 0:
+            mask_boundary_loss = boundary_loss <= self.cfg.reconstruction_loss_threshold
+            return boundary_loss, mask_boundary_loss
+        else:
+            return boundary_loss, torch.ones_like(boundary_loss, dtype=torch.bool)
 
     def get_perturbation_loss(self, pred_sdf_perturb: torch.Tensor, gt_sdf_perturb: torch.Tensor, frames_idx: int):
         perturbation_loss = self.perturbation_loss_fn(pred_sdf_perturb, gt_sdf_perturb)
@@ -153,7 +156,11 @@ class Criterion(nn.Module):
         mask_perturbation_loss = (perturbation_loss <= self.cfg.perturbation_loss_threshold).all(
             dim=1
         )  # (num_valid_rays,)
-        return perturbation_loss, mask_perturbation_loss
+        if self.cfg.reconstruction_loss_threshold > 0:
+            mask_perturbation_loss = perturbation_loss <= self.cfg.reconstruction_loss_threshold
+            return perturbation_loss, mask_perturbation_loss
+        else:
+            return perturbation_loss, torch.ones_like(perturbation_loss, dtype=torch.bool)
 
     def get_eikonal_loss(self, grad_norm: torch.Tensor, frames_idx: int):
         grad_norm_surface = grad_norm[:, self.n_stratified :]  # surface & perturbation
@@ -168,13 +175,27 @@ class Criterion(nn.Module):
         )  # (num_valid_rays,)
         self.eikonal_loss_table[frames_idx, :, self.n_stratified :] = eikonal_loss_surface.cpu().detach()
         self.eikonal_loss_table[frames_idx, :, : self.n_stratified] = eikonal_loss_space.cpu().detach()
-        return eikonal_loss_surface, eikonal_loss_space, eikonal_loss_surface_mask, eikonal_loss_space_mask
+        if self.cfg.reconstruction_loss_threshold > 0:
+            mask_eikonal_loss_surface = eikonal_loss_surface <= self.cfg.reconstruction_loss_threshold
+            mask_eikonal_loss_space = eikonal_loss_space <= self.cfg.reconstruction_loss_threshold
+            return eikonal_loss_surface, eikonal_loss_space, mask_eikonal_loss_surface, mask_eikonal_loss_space
+        else:
+            return (
+                eikonal_loss_surface,
+                eikonal_loss_space,
+                torch.ones_like(eikonal_loss_surface, dtype=torch.bool),
+                torch.ones_like(eikonal_loss_space, dtype=torch.bool),
+            )
 
     def get_projection_loss(self, pred_sdf: torch.Tensor, gt_sdf_stratified: torch.Tensor, frames_idx: int):
         projection_loss = self.projection_loss_fn(pred_sdf, gt_sdf_stratified)
         projection_loss_mask = (projection_loss <= self.cfg.projection_loss_threshold).all(dim=1)  # (num_valid_rays,)
         self.projection_loss_table[frames_idx, :, :] = projection_loss.cpu().detach()
-        return projection_loss, projection_loss_mask
+        if self.cfg.reconstruction_loss_threshold > 0:
+            mask_projection_loss = projection_loss <= self.cfg.reconstruction_loss_threshold
+            return projection_loss, mask_projection_loss
+        else:
+            return projection_loss, torch.ones_like(projection_loss, dtype=torch.bool)
 
     def get_sign_loss(
         self,

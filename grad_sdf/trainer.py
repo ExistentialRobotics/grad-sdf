@@ -115,6 +115,8 @@ class Trainer:
             if frame is None:
                 self.logger.info("No more valid frames, finish mapping.")
                 break  # no more valid frames
+            if frame.get_frame_index() == self.cfg.data.end_frame:
+                self.logger.info("End frame reached, debug.")
 
             points = frame.get_points(to_world_frame=True, device=self.cfg.device)
 
