@@ -63,22 +63,16 @@ class DepthFrame(Frame):
         if ref_pose.ndim != 2:
             ref_pose = ref_pose.reshape(4, 4)
         if not isinstance(ref_pose, torch.Tensor):  # from gt data
-            self.ref_pose = torch.tensor(
-                ref_pose, requires_grad=False, dtype=torch.float32
-            )
+            self.ref_pose = torch.tensor(ref_pose, requires_grad=False, dtype=torch.float32)
         else:  # from tracked data
             self.ref_pose = ref_pose.clone().requires_grad_(False)
         self.ref_pose[:3, 3] += offset  # Offset ensures voxel coordinates > 0
 
-        self.rays_d: torch.Tensor = self.get_rays(
-            K=self.K
-        )  # (H, W, 3) in camera coordinates
+        self.rays_d: torch.Tensor = self.get_rays(K=self.K)  # (H, W, 3) in camera coordinates
         if self.project_to_boundry:
             self.depth = self._get_projected_points()
 
-        self.points: torch.Tensor = (
-            self.rays_d * self.depth[..., None]
-        )  # (H, W, 3) in world coordinates
+        self.points: torch.Tensor = self.rays_d * self.depth[..., None]  # (H, W, 3) in world coordinates
         self.valid_mask: torch.Tensor = self.depth > 0  # (H, W) depth > 0
 
     def get_frame_index(self):
@@ -126,25 +120,44 @@ class DepthFrame(Frame):
     def get_valid_mask(self):
         return self.valid_mask
 
-    def _project_points_to_boundry(
-        self, bound_min: torch.Tensor, bound_max: torch.Tensor, mask
+    def _project_points_to_boundary(
+        self, bound_min: torch.Tensor, bound_max: torch.Tensor, points_out_of_bound: torch.Tensor
     ):
+        origin = self.get_ref_translation().view(1, 3)  # (1, 3)
 
-        rays = self.points[mask] - self.get_ref_translation()
-        depth = self.depth[mask]
-        res_min = (self.points[mask] - bound_min) / rays
-        res_max = (self.points[mask] - bound_max) / rays
+        ray_dir = points_out_of_bound - origin
+
+        inv_dir = 1.0 / (ray_dir + 1e-8)
+        t_min_planes = (bound_min.view(1, 3) - origin) * inv_dir
+        t_max_planes = (bound_max.view(1, 3) - origin) * inv_dir
+
+        t_max_each_dim = torch.max(t_min_planes, t_max_planes)
+        t_exit_final = torch.min(t_max_each_dim, dim=-1)[0]
+
+        projected_points_world = origin + t_exit_final.view(-1, 1) * ray_dir
+
+        R_w2c = self.ref_pose[:3, :3].T
+        t_w2c = -R_w2c @ self.ref_pose[:3, 3]
+
+        projected_points_cam = projected_points_world @ R_w2c.T + t_w2c
+
+        return projected_points_world, projected_points_cam[:, 2]
 
     def apply_bound(self, bound_min: torch.Tensor, bound_max: torch.Tensor):
         points = self.points @ self.ref_pose[:3, :3].T + self.ref_pose[:3, 3]
-        mask = points >= bound_min.view(1, 1, 3)
-        mask = mask & (points <= bound_max.view(1, 1, 3))
-        mask = mask.all(dim=-1)
-        # TODO if points out of bound project onto bounding box instead, and set them as valid
-        if self.project_to_boundry:
-            self.depth = self._projected_points_to_boundry(bounds, mask)
 
-        self.valid_mask = self.valid_mask & mask
+        mask = (points >= bound_min.view(1, 1, 3)) & (points <= bound_max.view(1, 1, 3))
+        mask = mask.all(dim=-1)
+
+        points_out_of_bound = points[~mask]
+
+        if points_out_of_bound.shape[0] > 0:
+            new_points_world, new_points_depth = self._project_points_to_boundary(
+                bound_min, bound_max, points_out_of_bound
+            )
+
+            self.depth[~mask] = new_points_depth
+            self.points[~mask] = new_points_world
 
     def sample_points(
         self,
