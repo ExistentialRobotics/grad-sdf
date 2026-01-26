@@ -41,6 +41,7 @@ class DepthFrame(Frame):
         intrinsic: torch.Tensor,
         offset: torch.Tensor,
         ref_pose: torch.Tensor,
+        project_to_boundry: bool = False,
     ) -> None:
         """
         Args:
@@ -56,18 +57,28 @@ class DepthFrame(Frame):
         if not isinstance(depth, torch.Tensor):
             depth = torch.FloatTensor(depth)  # / 2
         self.depth = depth
+        self.project_to_boundry = project_to_boundry
         self.K = intrinsic
 
         if ref_pose.ndim != 2:
             ref_pose = ref_pose.reshape(4, 4)
         if not isinstance(ref_pose, torch.Tensor):  # from gt data
-            self.ref_pose = torch.tensor(ref_pose, requires_grad=False, dtype=torch.float32)
+            self.ref_pose = torch.tensor(
+                ref_pose, requires_grad=False, dtype=torch.float32
+            )
         else:  # from tracked data
             self.ref_pose = ref_pose.clone().requires_grad_(False)
         self.ref_pose[:3, 3] += offset  # Offset ensures voxel coordinates > 0
 
-        self.rays_d: torch.Tensor = self.get_rays(K=self.K)  # (H, W, 3) in camera coordinates
-        self.points: torch.Tensor = self.rays_d * self.depth[..., None]  # (H, W, 3) in world coordinates
+        self.rays_d: torch.Tensor = self.get_rays(
+            K=self.K
+        )  # (H, W, 3) in camera coordinates
+        if self.project_to_boundry:
+            self.depth = self._get_projected_points()
+
+        self.points: torch.Tensor = (
+            self.rays_d * self.depth[..., None]
+        )  # (H, W, 3) in world coordinates
         self.valid_mask: torch.Tensor = self.depth > 0  # (H, W) depth > 0
 
     def get_frame_index(self):
@@ -94,7 +105,8 @@ class DepthFrame(Frame):
             K[1, 2] = self.K[1, 2] * h / self.h
         ix, iy = torch.meshgrid(torch.arange(w), torch.arange(h), indexing="xy")
         rays_d = torch.stack(
-            [(ix - K[0, 2]) / K[0, 0], (iy - K[1, 2]) / K[1, 1], torch.ones_like(ix)], -1
+            [(ix - K[0, 2]) / K[0, 0], (iy - K[1, 2]) / K[1, 1], torch.ones_like(ix)],
+            -1,
         ).float()  # camera coordinate
         return rays_d
 
@@ -114,11 +126,24 @@ class DepthFrame(Frame):
     def get_valid_mask(self):
         return self.valid_mask
 
+    def _project_points_to_boundry(
+        self, bound_min: torch.Tensor, bound_max: torch.Tensor, mask
+    ):
+
+        rays = self.points[mask] - self.get_ref_translation()
+        depth = self.depth[mask]
+        res_min = (self.points[mask] - bound_min) / rays
+        res_max = (self.points[mask] - bound_max) / rays
+
     def apply_bound(self, bound_min: torch.Tensor, bound_max: torch.Tensor):
         points = self.points @ self.ref_pose[:3, :3].T + self.ref_pose[:3, 3]
         mask = points >= bound_min.view(1, 1, 3)
         mask = mask & (points <= bound_max.view(1, 1, 3))
         mask = mask.all(dim=-1)
+        # TODO if points out of bound project onto bounding box instead, and set them as valid
+        if self.project_to_boundry:
+            self.depth = self._projected_points_to_boundry(bounds, mask)
+
         self.valid_mask = self.valid_mask & mask
 
     def sample_points(

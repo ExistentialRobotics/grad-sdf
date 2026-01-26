@@ -115,12 +115,6 @@ class Trainer:
         random.seed(seed)
 
     def train(self):
-        # for frame_id in tqdm(
-        #    range(self.cfg.data.start_frame, self.cfg.data.end_frame),
-        #    desc="Mapping",
-        #    ncols=120,
-        #    leave=False,
-        # ):
         while True:
             frame: DepthFrame = self.data_stream.get_next_frame()
             if frame is None:

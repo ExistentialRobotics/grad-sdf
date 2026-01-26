@@ -1,7 +1,7 @@
 base_config: rs_trainer.yaml
 data:
     dataset_args:
-        max_depth: 10.0
+        max_depth: -1.0
         offset: [0.0, 0.0, 0.0]
-        bound_min: [-2.0, -2.0, -2.0]
-        bound_max: [2.0, 2.0, 2.0]
+        bound_min: [-5.0, -5.0, 0.0]
+        bound_max: [20.0, 20.0, 10.0]
