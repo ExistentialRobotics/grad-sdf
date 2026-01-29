@@ -32,7 +32,7 @@ model:
         semi_sparse_depth: 5
         init_voxel_num: 200000
         insertion_threshold: 3
-        skip_insertion_if_exists: false   # does not help
+        skip_insertion_if_exists: false # does not help
         gradient_augmentation: true
     residual_net_cfg:
         identifier: grad_sdf.residual_net.ResidualNetConfig
@@ -68,7 +68,7 @@ num_init_frames: 3
 init_frame_iterations: 10
 num_iterations_per_frame: 1
 num_rays_total: 20480
-extra_surface_sample: false   # not helpful
+extra_surface_sample: false # not helpful
 frame_downsample: 100
 sample_rays:
     identifier: grad_sdf.utils.sampling.SampleRaysConfig

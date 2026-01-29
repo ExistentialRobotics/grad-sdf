@@ -59,7 +59,7 @@ class GuiBaseConfig(ConfigABC):
     octree_line_color: list = field(default_factory=lambda: [0.7, 0.7, 0.7])
 
     mesh_update_freq: int = 10
-    mesh_resolution: int = 100
+    mesh_resolution: int = 1
     mesh_clean: bool = True  # extract mesh only when a surface is likely present
     mesh_height_color_map: str = "jet"
     mesh_color_option: str = "normal"  # normal, height
@@ -1098,7 +1098,7 @@ class GuiBase:
         mesh_resolution_line = o3d_gui.Horiz(spacing=sp)
         mesh_resolution_line.add_child(o3d_gui.Label("Mesh Resolution (#voxels per meter):"))
         self.slider_mesh_resolution = o3d_gui.Slider(o3d_gui.Slider.INT)
-        self.slider_mesh_resolution.set_limits(10, 110)
+        self.slider_mesh_resolution.set_limits(1, 10)
         self.slider_mesh_resolution.int_value = self.cfg.mesh_resolution
         mesh_resolution_line.add_child(self.slider_mesh_resolution)
 
@@ -1156,7 +1156,7 @@ class GuiBase:
         sdf_resolution_line = o3d_gui.Horiz(spacing=sp)
         sdf_resolution_line.add_child(o3d_gui.Label("SDF Slice Resolution (#points per meter):"))
         self.slider_sdf_resolution = o3d_gui.Slider(o3d_gui.Slider.INT)
-        self.slider_sdf_resolution.set_limits(10, 200)
+        self.slider_sdf_resolution.set_limits(1, 20)
         self.slider_sdf_resolution.int_value = self.cfg.sdf_slice_resolution
         sdf_resolution_line.add_child(self.slider_sdf_resolution)
 
@@ -2313,8 +2313,9 @@ class GuiBase:
         extrinsics = np.array(view["extrinsics"])
         bounds = deepcopy(self.widget3d.scene.bounding_box)
         bounds = bounds.scale(1.2, bounds.get_center())
-        self.widget3d.setup_camera(intrinsics, extrinsics, self.widget3d_width, self.widget3d_height,
-                                   bounds)  # type: ignore
+        self.widget3d.setup_camera(
+            intrinsics, extrinsics, self.widget3d_width, self.widget3d_height, bounds
+        )  # type: ignore
 
     @classmethod
     def run(cls, *args, **kwargs):
@@ -2510,7 +2511,7 @@ class GuiBase:
                         self.sample_perturbed_name,
                         self.sample_perturbed,
                         self.checkbox_show_sample_perturbed.checked,
-                        self.data_packet.sampled_xyz[:, n_free: n_free + n_perturbed],
+                        self.data_packet.sampled_xyz[:, n_free : n_free + n_perturbed],
                         self.cfg.sample_color_perturbed,
                     )
                 if n_free > 0:

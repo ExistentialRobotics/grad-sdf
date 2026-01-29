@@ -33,7 +33,7 @@ class TrainerConfig(ConfigABC):
     finite_difference_eps: float = 0.03
     final_iterations: int = 0  # number of iterations after all frames are processed, 0 means no extra iterations
     save_mesh: bool = True  # whether to save the final mesh
-    mesh_resolution: float = 0.0125
+    mesh_resolution: float = 0.1
     mesh_iso_value: float = 0.0
     clean_mesh: bool = True
     save_slice: bool = True

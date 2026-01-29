@@ -6,7 +6,7 @@ panel_split_ratio: 0.8
 
 view_option: from_file # options: [follow, keyboard, from_file]
 view_file: replica_room0_view.yaml
-objects: [scan, traj, current_cam, mesh]
+objects: [traj, current_cam, sdf, gt_mesh]
 # scan, traj, kf_cams, current_cam, octree, sdf, sdf_prior, sdf_residual, mesh, mesh_prior,
 # gt_mesh, sample_surf, sample_perturb, sample_free, sample_extra
 
@@ -35,13 +35,13 @@ octree_min_size: 1
 octree_line_width: 2
 octree_line_color: [0.6, 0.6, 0.6]
 
-mesh_update_freq: 5
-mesh_resolution: 10
+mesh_update_freq: 1
+mesh_resolution: 1
 mesh_height_color_map: jet
 mesh_color_option: normal
 
-sdf_slice_update_freq: 10
-sdf_slice_resolution: 10
+sdf_slice_update_freq: 1
+sdf_slice_resolution: 1
 sdf_point_size: 22
 sdf_slice_axis: 2
 sdf_slice_position: -1.0

@@ -84,7 +84,7 @@ grad_method: finite_difference
 finite_difference_eps: 0.03
 final_iterations: 0
 save_mesh: true
-mesh_resolution: 0.2
+mesh_resolution: 0.1
 mesh_iso_value: 0.0
 clean_mesh: true
 ckpt_interval: -1
