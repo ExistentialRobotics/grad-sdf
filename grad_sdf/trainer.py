@@ -14,7 +14,6 @@ from grad_sdf.key_frame_set import KeyFrameSet
 from grad_sdf.loggers import BasicLogger
 from grad_sdf.model import SdfNetwork
 from grad_sdf.trainer_config import TrainerConfig
-from grad_sdf.utils.import_util import get_dataset
 from grad_sdf.utils.profiling import GpuTimer
 from grad_sdf.utils.sampling import SampleResults, generate_sdf_samples
 
@@ -25,17 +24,11 @@ class Trainer:
 
         self.setup_seed(self.cfg.seed)
 
-        self.data_stream = get_dataset(cfg.data.dataset_name, cfg.data.dataset_args)
-
-        # set the bound automatically
-        self.cfg.model.residual_net_cfg.bound_min = (self.data_stream.bound_min - 0.15).cpu().tolist()
-        self.cfg.model.residual_net_cfg.bound_max = (self.data_stream.bound_max + 0.15).cpu().tolist()
-
-        if self.cfg.data.end_frame < 0:
-            self.cfg.data.end_frame = len(self.data_stream)
-        self.cfg.data.start_frame = min(self.cfg.data.start_frame, len(self.data_stream) - 1)
-        self.cfg.data.end_frame = min(self.cfg.data.end_frame, len(self.data_stream))
-        self.current_frame_idx = self.cfg.data.start_frame
+        dataset_args = self.cfg.data.dataset_args
+        bound_min = dataset_args['bound_min']
+        bound_max = dataset_args['bound_max']
+        self.cfg.model.residual_net_cfg.bound_min = bound_min
+        self.cfg.model.residual_net_cfg.bound_max = bound_max
 
         self.key_frame_set = KeyFrameSet(
             cfg=self.cfg.key_frame_set,
@@ -47,7 +40,9 @@ class Trainer:
 
         self.logger = BasicLogger(cfg.log_dir, cfg.exp_name, cfg.as_dict())
 
-        self.scene_offset = torch.tensor(self.cfg.data.offset)
+        # Handle offset whether in dataset_args or directly in data
+        offset = dataset_args['offset']
+        self.scene_offset = torch.tensor(offset)
         self.epoch = 0
         self.global_step = 0
         self.num_iterations = 0
@@ -99,58 +94,6 @@ class Trainer:
         torch.cuda.manual_seed_all(seed)
         np.random.seed(seed)
         random.seed(seed)
-
-    def train(self):
-        for frame_id in tqdm(
-            range(self.cfg.data.start_frame, self.cfg.data.end_frame),
-            desc="Mapping",
-            ncols=120,
-            leave=False,
-        ):
-            frame = self.fetch_one_frame()
-            if frame is None:
-                self.logger.info("No more valid frames, finish mapping.")
-                break  # no more valid frames
-
-            points = frame.get_points(to_world_frame=True, device=self.cfg.device)
-
-            with self.timer_octree_insert:
-                _, seen_voxels = self.insert_points_to_octree(points)
-
-            with self.timer_key_frame_set_update:
-                is_key_frame = self.update_key_frame_set(frame, seen_voxels)
-
-            if is_key_frame:
-                self.logger.info(f"Frame {frame_id} is selected as a key frame.")
-
-            with self.timer_train_frame:
-                if not self.train_with_frame(frame=frame):
-                    self.logger.info("Training interrupted by callback, exiting.")
-                    break  # exit training
-            self.epoch += 1
-
-            if self.cfg.ckpt_interval > 0 and self.epoch % self.cfg.ckpt_interval == 0:
-                self.save_model(f"epoch_{self.epoch:04d}.pth")
-
-        for _ in range(self.cfg.final_iterations):
-            self.train_with_frame(None)
-
-        self.logger.info("Training completed.")
-        if self.training_end_callback is not None:
-            self.training_end_callback(self)
-
-        self.evaluate()
-        self.save_model("final.pth")
-
-    def fetch_one_frame(self) -> Optional[Frame]:
-        frame = None
-        while self.current_frame_idx < self.cfg.data.end_frame:
-            frame = self.data_stream[self.current_frame_idx]
-            self.current_frame_idx += 1
-            if not torch.all(frame.get_ref_pose().isfinite()):  # bad pose
-                continue
-            break
-        return frame
 
     @torch.no_grad()
     def insert_points_to_octree(self, points: torch.Tensor):
