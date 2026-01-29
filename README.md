@@ -127,12 +127,12 @@ python grad_sdf/dataset/replica_augment_views.py \
 ```
 ## Run $\nabla$-SDF
 
-### Example: Training on Replica Scene *room0*
+### Example: Training on Newercollege
 
-Run the following command to start training on the Replica dataset scene **room0**:
+Run the following command to start training on the Newercollege dataset
 
 ```bash
-python grad_sdf/trainer.py  --config configs/v2/replica_room0.yaml
+python grad_sdf/trainer.py  --config configs/v2/newercollege.yaml
 ```
 
 ### Run GUI Trainer
@@ -142,8 +142,8 @@ The GUI trainer allows interactive visualization and monitoring of the training 
 ```bash
 python grad_sdf/gui_trainer.py \
     --gui-config configs/v2/gui.yaml \
-    --trainer-config configs/v2/replica_room0.yaml \
-    --gt-mesh-path data/Replica_preprocessed/room0_mesh.ply \
+    --trainer-config configs/v2/newercollege.yaml \
+    --gt-mesh-path data/newercollege-lidar-rotated/gt-mesh.ply \
     --apply-offset-to-gt-mesh \
     --copy-scene-bound-to-gui
 ```
@@ -186,13 +186,13 @@ If you find this work useful in your research, please consider citing:
 
 ```bibtex
 @misc{dai2025nablasdf,
-      title={{$\nabla$-SDF: Learning Euclidean Signed Distance Functions Online with Gradient-Augmented Octree Interpolation and Neural Residual}}, 
+      title={{$\nabla$-SDF: Learning Euclidean Signed Distance Functions Online with Gradient-Augmented Octree Interpolation and Neural Residual}},
       author={Zhirui Dai and Qihao Qian and Tianxing Fan and Nikolay Atanasov},
       year={2025},
       eprint={2510.18999},
       archivePrefix={arXiv},
       primaryClass={cs.RO},
-      url={https://arxiv.org/abs/2510.18999}, 
+      url={https://arxiv.org/abs/2510.18999},
 }
 ```
 
