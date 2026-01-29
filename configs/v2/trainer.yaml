@@ -8,8 +8,8 @@ data:
     dataset_name: newercollege
     dataset_args:
         data_path: "data/newercollege-lidar-rotated"
-        min_depth: 0.0
-        max_depth: -1.0
+        min_depth: 0.8
+        max_depth: 40.0
         offset: [0.0, 0.0, 0.0]
         bound_min:
         bound_max:
@@ -27,10 +27,10 @@ model:
     identifier: grad_sdf.model.SdfNetworkConfig
     octree_cfg:
         identifier: grad_sdf.octree_config.OctreeConfig
-        resolution: 0.1
-        tree_depth: 11 # 0.14*512=71.68m  mesh size  [39.74192742 57.25316639 27.58267038]
-        semi_sparse_depth: 7
-        init_voxel_num: 5000000
+        resolution: 0.7
+        tree_depth: 8 # 0.14*512=71.68m  mesh size  [39.74192742 57.25316639 27.58267038]
+        semi_sparse_depth: 5
+        init_voxel_num: 80000
         insertion_threshold: 1
         skip_insertion_if_exists: true # speed up a bit
         # gradient_augmentation: true
@@ -50,7 +50,7 @@ model:
         output_sdf_scale: 0.1
 criterion:
     identifier: grad_sdf.criterion.CriterionConfig
-    boundary_loss_weight: 1000
+    boundary_loss_weight: 100
     boundary_loss_type: L1
     perturbation_loss_weight: 100
     perturbation_loss_type: L1
@@ -67,7 +67,7 @@ criterion:
 num_init_frames: 3
 init_frame_iterations: 10
 num_iterations_per_frame: 1
-num_rays_total: 81920
+num_rays_total: 40960
 extra_surface_sample: false # not helpful
 frame_downsample: 10
 sample_rays:
@@ -76,8 +76,8 @@ sample_rays:
     n_perturbed: 2
     depth_min: 0.1
     depth_max: 25.0
-    surface_margin: 0.37
-    sigma_s: 0.36
+    surface_margin: 1.44
+    sigma_s: 0.72
 batch_size: 204800
 lr: 0.005
 grad_method: finite_difference

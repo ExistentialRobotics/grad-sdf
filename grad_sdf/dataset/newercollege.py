@@ -50,18 +50,7 @@ class DataLoader(Dataset):
             self.bound_max += self.offset
 
         self.num_imgs = len(glob(osp.join(self.data_path, "ply/*.ply")))
-        # self.K = self.load_intrinsic()
         self.gt_pose = self.load_gt_pose()
-
-    # @staticmethod
-    # def load_intrinsic():
-    #     K = torch.eye(3)
-    #     K[0, 0] = 128
-    #     K[1, 1] = 64
-    #     K[0, 2] = 127.5
-    #     K[1, 2] = 63.5
-
-    #     return K
 
     def get_init_pose(self, init_frame=None):
         if self.gt_pose is not None and init_frame is not None:
@@ -77,30 +66,20 @@ class DataLoader(Dataset):
         gt_pose = torch.from_numpy(gt_pose).float()
         return gt_pose
 
-    # def load_depth(self, index) -> torch.Tensor:
-    #     depth = cv2.imread(osp.join(self.data_path, "ply/{:04d}.png".format(index)), -1)
-    #     if self.min_depth > 0:
-    #         depth[depth < self.min_depth] = 0
-    #     if self.max_depth > 0:
-    #         depth[depth > self.max_depth] = 0
-    #     depth = torch.from_numpy(depth).float()
-    #     return depth
-
     def load_pointcloud(self, index) -> torch.Tensor:
         ply_path = osp.join(self.data_path, "ply/{:04d}.ply".format(index))
         pcd = o3d.io.read_point_cloud(ply_path)
         pointcloud = torch.from_numpy(np.asarray(pcd.points)).float()
-        
-        # 计算每个点到相机原点的距离（坐标的范数）
+
         depth = torch.norm(pointcloud, dim=-1)
-        
-        # 根据深度范围进行筛选
+
+        # filter points by depth
         mask = torch.ones(depth.shape[0], dtype=torch.bool)
         if self.min_depth > 0:
-            mask &= (depth >= self.min_depth)
+            mask &= depth >= self.min_depth
         if self.max_depth > 0:
-            mask &= (depth <= self.max_depth)
-        
+            mask &= depth <= self.max_depth
+
         pointcloud = pointcloud[mask]
         return pointcloud
 

@@ -145,7 +145,7 @@ class DepthFrame(Frame):
         return points
 
 
-class LiDARFrame():
+class LiDARFrame:
     def __init__(
         self,
         fid: int,
@@ -192,8 +192,6 @@ class LiDARFrame():
 
     @torch.no_grad()
     def get_rays(self):
-        # 返回局部坐标系中的归一化射线方向，与 DepthFrame 保持一致
-        # 后续在 key_frame_set.sample_rays 中会通过旋转矩阵转换到世界坐标系
         rays_d = torch.nn.functional.normalize(self.points, p=2, dim=-1)
         return rays_d
 

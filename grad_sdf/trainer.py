@@ -5,8 +5,8 @@ from typing import Callable, Optional
 import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
+import torch
 
-from grad_sdf import torch
 from grad_sdf.criterion import Criterion
 from grad_sdf.evaluator_grad_sdf import GradSdfEvaluator
 from grad_sdf.frame import Frame

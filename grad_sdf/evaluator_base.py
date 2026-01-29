@@ -1,10 +1,13 @@
 import os
 from typing import Callable, Dict, List, Optional
 
+import numpy as np
+import open3d as o3d
+import torch
 import trimesh
 from scipy.spatial import cKDTree
 
-from grad_sdf import MarchingCubes, np, o3d, torch
+from grad_sdf import MarchingCubes
 
 
 class EvaluatorBase:
