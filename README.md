@@ -101,7 +101,7 @@ $\nabla$-SDF is a hybrid SDF reconstruction framework that combines gradient-aug
 
 ## Prepare Dataset
 
-Download Replica Dataset (only mesh, camera parameter and trajectory) at [One-Drive Link](https://ucsdcloud-my.sharepoint.com/my?id=%2Fpersonal%2Fzhdai%5Fucsd%5Fedu%2FDocuments%2FPublicShare%2Fgrad%2Dsdf%2Freplica%2Etar%2Egz&parent=%2Fpersonal%2Fzhdai%5Fucsd%5Fedu%2FDocuments%2FPublicShare%2Fgrad%2Dsdf&ga=1) and put it under path "data/Replica"
+<!-- Download Replica Dataset (only mesh, camera parameter and trajectory) at [One-Drive Link](https://ucsdcloud-my.sharepoint.com/my?id=%2Fpersonal%2Fzhdai%5Fucsd%5Fedu%2FDocuments%2FPublicShare%2Fgrad%2Dsdf%2Freplica%2Etar%2Egz&parent=%2Fpersonal%2Fzhdai%5Fucsd%5Fedu%2FDocuments%2FPublicShare%2Fgrad%2Dsdf&ga=1) and put it under path "data/Replica"
 
 Run the following commands to preprocess the Replica dataset:
 
@@ -124,7 +124,10 @@ python grad_sdf/dataset/replica_augment_views.py \
     # --interval 50  # (optional, default=50) Insert upward-looking frames every n frames. \
     # --n-rolls-per-insertion 10 # (optional, default=10) Number of roll rotations per insertion. \
     # --keep-existing  # (optional) Keep existing RGBD data.
-```
+``` -->
+
+Download our preprocessed newercollege lidar dataset (get from newercollege rosbag)
+
 ## Run $\nabla$-SDF
 
 ### Example: Training on Newercollege
