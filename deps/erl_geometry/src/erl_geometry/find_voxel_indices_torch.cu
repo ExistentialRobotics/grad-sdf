@@ -3,6 +3,7 @@
 
 #include <c10/cuda/CUDAException.h>
 
+#define CHECK_NONEMPTY(x)   TORCH_CHECK((x).numel() > 0, #x " must be non-empty")
 #define CHECK_CUDA(x)       TORCH_CHECK((x).device().is_cuda(), #x " must be a CUDA tensor")
 #define CHECK_CONTIGUOUS(x) TORCH_CHECK((x).is_contiguous(), #x " must be contiguous")
 #define CHECK_LONG(x)       TORCH_CHECK((x).scalar_type() == torch::kInt64, #x " must be a Long tensor")
@@ -19,6 +20,7 @@ namespace erl::geometry {
         const torch::Tensor &children,
         torch::Tensor &voxel_indices) {
 
+        CHECK_NONEMPTY(codes);
         CHECK_CUDA(codes);
         CHECK_CONTIGUOUS(codes);
         TORCH_CHECK(
@@ -26,6 +28,7 @@ namespace erl::geometry {
             "codes must be of type UInt32 or UInt64.");
         TORCH_CHECK(dims == 2 || dims == 3, "dims must be 2 or 3.");
 
+        CHECK_NONEMPTY(children);
         CHECK_CUDA(children);
         CHECK_CONTIGUOUS(children);
 

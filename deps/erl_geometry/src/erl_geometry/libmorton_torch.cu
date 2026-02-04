@@ -5,6 +5,7 @@
 
     #include <c10/cuda/CUDAException.h>
 
+    #define CHECK_NONEMPTY(x)   TORCH_CHECK((x).numel() > 0, #x " must be non-empty")
     #define CHECK_CUDA(x)       TORCH_CHECK((x).device().is_cuda(), #x " must be a CUDA tensor")
     #define CHECK_CONTIGUOUS(x) TORCH_CHECK((x).is_contiguous(), #x " must be contiguous")
     #define CHECK_LONG(x) \
@@ -15,6 +16,7 @@
 namespace erl::geometry {
     void
     MortonEncodeTorchCUDA(const torch::Tensor &coords, torch::Tensor &codes) {
+        CHECK_NONEMPTY(coords);
         CHECK_CUDA(coords);
         CHECK_CONTIGUOUS(coords);
 
